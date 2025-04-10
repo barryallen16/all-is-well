@@ -1,8 +1,11 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from faster_whisper import WhisperModel
 import joblib
+import os
 import random
 import requests  # For Supabase API calls
+import tempfile
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -19,6 +22,14 @@ try:
 except Exception as e:
     print(f"Error loading text model: {str(e)}")
     text_model = None
+
+# Load speech-to-text model (downloads ~75MB on first run)
+try:
+    whisper_model = WhisperModel('tiny.en', device='cpu', compute_type='int8')
+    print("Speech model loaded successfully")
+except Exception as e:
+    print(f"Error loading speech model: {str(e)}")
+    whisper_model = None
 
 motivational_responses = {
     "Low": [
@@ -89,6 +100,30 @@ def predict_text():
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 400
+
+@app.route('/transcribe', methods=['POST'])
+def transcribe():
+    if whisper_model is None:
+        return jsonify({'error': 'Speech model not loaded'}), 503
+
+    audio = request.files.get('file')
+    if not audio:
+        return jsonify({'error': 'No audio file provided'}), 400
+
+    path = None
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.m4a') as tmp:
+            audio.save(tmp)
+            path = tmp.name
+
+        segments, _ = whisper_model.transcribe(path, language='en', vad_filter=True)
+        text = ' '.join(segment.text.strip() for segment in segments).strip()
+        return jsonify({'text': text})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        if path and os.path.exists(path):
+            os.remove(path)
 
 @app.route('/send_message', methods=['POST'])
 def send_message():

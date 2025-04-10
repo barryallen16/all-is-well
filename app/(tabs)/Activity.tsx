@@ -2,7 +2,7 @@ import { View, Text, Pressable, Alert, ActivityIndicator, TextInput, KeyboardAvo
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Audio } from 'expo-av';
 import { useEffect, useState } from 'react';
-import { create, ApiResponse } from 'apisauce';
+import { create } from 'apisauce';
 import * as FileSystem from 'expo-file-system';
 import FormData from 'form-data';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -10,25 +10,10 @@ import { MeshGradientView } from 'expo-mesh-gradient';
 import { supabase } from '~/utils/supabase';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 
-// [Existing interfaces and API clients remain unchanged]
-
-interface ApiResponseData {
-  language_code: string;
-  language_probability: number;
-  text: string;
-}
-
 interface FlaskResponseData {
   risk: string;
   message: string;
 }
-
-const apiClient = create({
-  baseURL: 'https://api.elevenlabs.io/v1',
-  headers: {
-    'xi-api-key': process.env.EXPO_PUBLIC_ELEVENLABS_APIKEY as string,
-  },
-});
 
 const flaskApiClient = create({
   baseURL: process.env.EXPO_PUBLIC_FLASK_BACKEND_ENDPOINT as string,

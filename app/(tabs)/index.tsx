@@ -2,7 +2,7 @@ import { View, Text, Pressable, Alert, ActivityIndicator, TextInput, KeyboardAvo
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Audio } from 'expo-av';
 import { useEffect, useState } from 'react';
-import { create, ApiResponse } from 'apisauce';
+import { create } from 'apisauce';
 import * as FileSystem from 'expo-file-system';
 import FormData from 'form-data';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -10,9 +10,7 @@ import { MeshGradientView } from 'expo-mesh-gradient';
 import { supabase } from '~/utils/supabase';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 
-interface ApiResponseData {
-  language_code: string;
-  language_probability: number;
+interface TranscriptionResponseData {
   text: string;
 }
 
@@ -20,13 +18,6 @@ interface FlaskResponseData {
   risk: string;
   message: string;
 }
-
-const apiClient = create({
-  baseURL: 'https://api.elevenlabs.io/v1',
-  headers: {
-    'xi-api-key': process.env.EXPO_PUBLIC_ELEVENLABS_APIKEY as string,
-  },
-});
 
 const flaskApiClient = create({
   baseURL: process.env.EXPO_PUBLIC_FLASK_BACKEND_ENDPOINT as string,
@@ -185,16 +176,14 @@ export default function Home() {
       }
 
       const formData = new FormData();
-      formData.append('model_id', 'scribe_v1');
       formData.append('file', {
         uri: audioUri,
         name: 'audio.m4a',
         type: 'audio/m4a',
       });
-      formData.append('language_code', 'en');
 
-      const response = await apiClient.post<ApiResponseData, ApiResponse<ApiResponseData>>(
-        '/speech-to-text',
+      const response = await flaskApiClient.post<TranscriptionResponseData>(
+        '/transcribe',
         formData,
         { headers: { 'Content-Type': 'multipart/form-data' } }
       );

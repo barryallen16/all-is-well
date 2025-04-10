@@ -9,6 +9,7 @@ npm-debug.*
 *.mobileprovision
 *.orig.*
 venv
+.venv
 */node_modules/
 ~/node_modules/
 web-build/
