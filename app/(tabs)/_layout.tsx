@@ -1,11 +1,7 @@
 import { Tabs } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useEffect } from 'react';
-import { supabase } from '~/utils/supabase';
-import { Alert } from 'react-native';
 import { TabBarIcon } from '../../components/TabBarIcon';
 export default function TabLayout() {
-
   return (
     <Tabs
       screenOptions={{
@@ -14,20 +10,17 @@ export default function TabLayout() {
         tabBarStyle: {
           backgroundColor: '#1F2937',
         },
-      }}
-    >
+      }}>
       <Tabs.Screen
         name="index"
         options={{
           title: 'Home',
           headerShown: false,
-          tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="home" size={size} color={color} />
-          ),
+          tabBarIcon: ({ color, size }) => <MaterialIcons name="home" size={size} color={color} />,
         }}
       />
-        
-        <Tabs.Screen
+
+      <Tabs.Screen
         name="Activity"
         options={{
           headerShown: false,
@@ -40,19 +33,15 @@ export default function TabLayout() {
         options={{
           headerShown: false,
           title: 'Chat',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="chat" size={size} color={color} />
-          ),
+          tabBarIcon: ({ color, size }) => <MaterialIcons name="chat" size={size} color={color} />,
         }}
       />
-            <Tabs.Screen
+      <Tabs.Screen
         name="profile"
         options={{
           title: 'profile',
           headerShown: false,
-          tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="face" size={size} color={color} />
-          ),
+          tabBarIcon: ({ color, size }) => <MaterialIcons name="face" size={size} color={color} />,
         }}
       />
     </Tabs>

@@ -1,8 +1,13 @@
 import { View, Text, TextInput, Pressable, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState } from 'react';
-import { supabase } from '~/utils/supabase';
+import { api, setToken } from '~/utils/api';
 import { useRouter } from 'expo-router';
+
+interface AuthResponse {
+  token: string;
+  error?: string;
+}
 
 export default function Auth() {
   const [username, setUsername] = useState<string>('');
@@ -11,55 +16,49 @@ export default function Auth() {
   const [isSignUp, setIsSignUp] = useState<boolean>(false);
   const router = useRouter();
 
-  const handleAuth = async () => {
+  const submit = async () => {
     setIsLoading(true);
     try {
-      const pseudoEmail = `${username}@all-is-well.app`;
+      const response = isSignUp
+        ? await api.post<AuthResponse>('/auth/signup', { username, password })
+        : await api.post<AuthResponse>('/auth/login', { username, password });
 
-      if (isSignUp) {
-        // Show warning before sign-up
-        Alert.alert(
-          'Important Notice',
-          'You are signing up with a username and password only. If you forget your password, you will not be able to recover your account.',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            {
-              text: 'Proceed',
-              onPress: async () => {
-                const { data, error } = await supabase.auth.signUp({
-                  email: pseudoEmail,
-                  password,
-                });
-                if (error) throw error;
-                Alert.alert('Success', 'Sign-up successful! You are now signed in.');
-                router.replace('/(tabs)');
-              },
-            },
-          ]
-        );
-      } else {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: pseudoEmail,
-          password,
-        });
-        if (error) throw error;
+      if (response.ok && response.data) {
+        await setToken(response.data.token);
         router.replace('/(tabs)');
+      } else {
+        Alert.alert('Error', response.data?.error || 'Something went wrong. Please try again.');
       }
     } catch (err: any) {
       console.error('Auth error:', err.message);
-      Alert.alert('Error', err.message || 'Something went wrong. Please try again.');
+      Alert.alert('Error', 'Could not reach the backend. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
+  const handleAuth = () => {
+    if (isSignUp) {
+      Alert.alert(
+        'Important Notice',
+        'You are signing up with a username and password only. If you forget your password, you will not be able to recover your account.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Proceed', onPress: submit },
+        ]
+      );
+    } else {
+      submit();
+    }
+  };
+
   return (
     <SafeAreaView className="flex-1 bg-gray-900">
-      <View className="flex-1 p-4 justify-center">
-        <Text className="text-white text-3xl font-extrabold text-center mb-6">All Is Well</Text>
+      <View className="flex-1 justify-center p-4">
+        <Text className="mb-6 text-center text-3xl font-extrabold text-white">All Is Well</Text>
 
         <TextInput
-          className="bg-gray-800 text-white text-lg p-3 rounded-lg mb-4"
+          className="mb-4 rounded-lg bg-gray-800 p-3 text-lg text-white"
           placeholder="Username"
           placeholderTextColor="#A0A0A0"
           value={username}
@@ -67,7 +66,7 @@ export default function Auth() {
           autoCapitalize="none"
         />
         <TextInput
-          className="bg-gray-800 text-white text-lg p-3 rounded-lg mb-6"
+          className="mb-6 rounded-lg bg-gray-800 p-3 text-lg text-white"
           placeholder="Password"
           placeholderTextColor="#A0A0A0"
           value={password}
@@ -81,15 +80,14 @@ export default function Auth() {
         ) : (
           <>
             <Pressable
-              className="bg-blue-600 py-3 px-6 rounded-lg mb-4 shadow-md"
-              onPress={handleAuth}
-            >
-              <Text className="text-white text-lg font-semibold text-center">
+              className="mb-4 rounded-lg bg-blue-600 px-6 py-3 shadow-md"
+              onPress={handleAuth}>
+              <Text className="text-center text-lg font-semibold text-white">
                 {isSignUp ? 'Sign Up' : 'Sign In'}
               </Text>
             </Pressable>
             <Pressable onPress={() => setIsSignUp(!isSignUp)}>
-              <Text className="text-blue-400 text-center text-base">
+              <Text className="text-center text-base text-blue-400">
                 {isSignUp ? 'Already have an account? Sign In' : 'Need an account? Sign Up'}
               </Text>
             </Pressable>

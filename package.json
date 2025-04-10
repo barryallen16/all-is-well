@@ -18,7 +18,6 @@
     "@expo/vector-icons": "^14.0.0",
     "@react-native-async-storage/async-storage": "1.23.1",
     "@react-navigation/native": "^7.0.3",
-    "@supabase/supabase-js": "^2.38.4",
     "@wilmxre/react-native-mesh-gradient": "^0.1.1",
     "apisauce": "^3.1.0",
     "axios": "^1.8.3",
