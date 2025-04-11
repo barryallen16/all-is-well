@@ -78,6 +78,31 @@ class FramingTest(unittest.TestCase):
         self.assertEqual(safety.find_crisis_phrases("i am not suicidal, just tired"), [])
         self.assertTrue(safety.find_crisis_phrases("i am not suicidal and i want to die"))
 
+    def test_method_mentions(self):
+        for text in (
+            "i took a whole bottle of pills",
+            "i took 500mg of paracetamol",
+            "i slit my wrists",
+            "i cut my wrists",
+            "how long until i bleed out",
+            "i want to jump off a bridge",
+            "i jumped from a hundred story height",
+            "i want to shoot myself",
+        ):
+            with self.subTest(text=text):
+                self.assertTrue(safety.find_crisis_phrases(text))
+
+    def test_prescribed_dose_is_not_a_method(self):
+        self.assertEqual(safety.find_crisis_phrases("i am taking 500mg of paracetamol daily"), [])
+
+    def test_rhetorical_question_is_not_negation(self):
+        matches = safety.find_crisis_phrases("wouldn't it be easier if i jumped off a bridge")
+        self.assertTrue(matches)
+        self.assertEqual(safety.find_crisis_phrases("i wouldn't kill myself"), [])
+
+    def test_pull_the_trigger(self):
+        self.assertTrue(safety.find_crisis_phrases("i feel like i could pull the trigger today"))
+
     def test_third_person_helper(self):
         self.assertTrue(safety.looks_third_person("she was so depressed, it was awful"))
         self.assertTrue(safety.looks_third_person("my friend is going through a lot"))

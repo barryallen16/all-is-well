@@ -60,6 +60,14 @@ _PATTERNS = [
     (r"\bcut(?:ting)?\s+myself\b", "self_harm"),
     (r"\bburn(?:ing)?\s+myself\b", "self_harm"),
     (r"\bhang(?:ing)?\s+myself\b", "suicide"),
+    (r"\bshoot(?:ing)?\s+myself\b", "suicide"),
+    (r"\bpull(?:ing)?\s+the\s+trigger\b", "suicide"),
+    (r"\bslit\s+my\s+wrists?\b", "self_harm"),
+    (r"\bcut\s+my\s+wrists?\b", "self_harm"),
+    (r"\bbleed\s+out\b", "self_harm"),
+    (r"\b(?:took|swallowed)\s+(?:\d+\s*(?:mg|pills|tablets)|(?:a\s+)?(?:whole\s+)?(?:bottle|handful|bunch)\s+of\s+(?:pills|tablets))\b", "self_harm"),
+    (r"\b(?:taking|swallowing)\s+(?:a\s+)?(?:whole\s+)?(?:bottle|handful|bunch)\s+of\s+(?:pills|tablets)\b", "self_harm"),
+    (r"\bjump(?:ed|ing)?\s+(?:off|from)\s+(?:a\s+|the\s+)?(?:\w+\s+){0,2}(?:bridge|building|roof|height|cliff|balcony|window)\b", "suicide"),
     (r"\boverdos(?:e|ed|ing)\b", "self_harm"),
     (r"\bwant\s+to\s+disappear\b", "death_wish"),
     (r"\bnobody\s+would\s+(?:miss|care)\b", "burden"),
@@ -73,7 +81,7 @@ _COMPILED_PATTERNS = [(re.compile(pattern, re.IGNORECASE), kind) for pattern, ki
 
 _BOUNDARY = re.compile(r"[,.;!?]|\b(?:and|but|because|then)\b", re.IGNORECASE)
 _NEGATORS = re.compile(
-    r"\b(?:not|never|no\s+longer|don'?t|doesn'?t|didn'?t|won'?t|wouldn'?t|"
+    r"\b(?:not|never|no\s+longer|don'?t|doesn'?t|didn'?t|won'?t|wouldn'?t(?!\s+it\s+be)|"
     r"isn'?t|wasn'?t|aren'?t|weren'?t|can'?t|cannot)\b",
     re.IGNORECASE,
 )
