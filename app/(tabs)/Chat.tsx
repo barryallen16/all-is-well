@@ -25,12 +25,19 @@ interface CrisisMatch {
   historical: boolean;
 }
 
+interface CrisisResource {
+  name: string;
+  contact: string;
+}
+
 interface AnalysisResult {
   level: 'crisis' | 'support' | 'none';
   crisis: boolean;
   about_self: boolean;
   matched: CrisisMatch[];
   message: string;
+  resources: CrisisResource[];
+  emergency: string | null;
 }
 
 export default function Chat() {
@@ -91,15 +98,24 @@ export default function Chat() {
     if (response.ok && response.data) {
       const result = response.data;
       const evidence = result.matched.map((match) => `- "${match.phrase}"`).join('\n');
-      const title = result.crisis
-        ? 'Support now'
-        : result.level === 'support'
-          ? 'Check-in'
-          : 'Analysis';
-      Alert.alert(
-        title,
-        evidence ? `${result.message}\n\nWhat we noticed:\n${evidence}` : result.message
-      );
+      const resources = result.resources
+        .map((resource) => `${resource.name}: ${resource.contact}`)
+        .join('\n');
+      const sections = [result.message];
+
+      if (evidence) {
+        sections.push(`What we noticed:\n${evidence}`);
+      }
+      if (resources) {
+        sections.push(`Where to get help:\n${resources}\nThese helplines are for India.`);
+        sections.push(
+          `If you or someone else is in immediate danger, call ${
+            result.emergency ?? 'your local emergency number'
+          }.`
+        );
+      }
+
+      Alert.alert(result.crisis ? 'Support now' : 'Check-in', sections.join('\n\n'));
     } else {
       setError('Failed to analyze chat.');
     }

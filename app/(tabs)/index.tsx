@@ -31,12 +31,19 @@ interface CrisisMatch {
   historical: boolean;
 }
 
+interface CrisisResource {
+  name: string;
+  contact: string;
+}
+
 interface AnalysisResult {
   level: 'crisis' | 'support' | 'none';
   crisis: boolean;
   about_self: boolean;
   matched: CrisisMatch[];
   message: string;
+  resources: CrisisResource[];
+  emergency: string | null;
 }
 
 const points: [number, number][] = [
@@ -447,12 +454,36 @@ export default function Home() {
                       </Text>
                     )}
                     <Text className="text-base text-gray-200">{result.message}</Text>
+                    {result.resources.length > 0 && (
+                      <View className="mt-3">
+                        <Text className="text-base font-semibold text-white">
+                          Where to get help
+                        </Text>
+                        <Text className="mt-1 text-sm text-gray-300">
+                          These helplines are for India.
+                        </Text>
+                        {result.resources.map((resource) => (
+                          <Text key={resource.name} className="mt-1 text-base text-gray-200">
+                            <Text className="font-semibold">{resource.name}:</Text>{' '}
+                            {resource.contact}
+                          </Text>
+                        ))}
+                        <Text className="mt-2 text-sm text-gray-300">
+                          If you or someone else is in immediate danger, call{' '}
+                          {result.emergency ?? 'your local emergency number'}.
+                        </Text>
+                      </View>
+                    )}
                   </View>
                 )}
               </View>
             )}
 
             {error && <Text className="mt-4 text-center text-base text-red-400">{error}</Text>}
+
+            <Text className="mt-4 text-center text-sm text-gray-500">
+              This is a check-in tool, not a diagnosis or a crisis service.
+            </Text>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

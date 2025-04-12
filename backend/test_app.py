@@ -101,9 +101,6 @@ class ApiTest(unittest.TestCase):
         self.assertEqual(body['matched'], [])
         self.assertTrue(body['message'])
 
-    def test_crisis_message_has_a_real_resource(self):
-        self.assertIn('findahelpline.com', main1.CRISIS_MESSAGE)
-
     def test_predict_text_crisis_is_deterministic(self):
         headers = self.signup('erin')
         body = self.client.post(
@@ -115,6 +112,11 @@ class ApiTest(unittest.TestCase):
         self.assertTrue(body['crisis'])
         self.assertTrue(body['about_self'])
         self.assertEqual(body['matched'][0]['phrase'], 'kill myself')
+        self.assertEqual(body['emergency'], '112')
+        contacts = ' '.join(item['contact'] for item in body['resources'])
+        self.assertIn('14416', contacts)
+        self.assertIn('1800-599-0019', contacts)
+        self.assertIn('98204 66726', contacts)
 
     def test_negation_is_not_crisis(self):
         headers = self.signup('erin2')
@@ -166,6 +168,10 @@ class ApiTest(unittest.TestCase):
         self.assertEqual(body['level'], 'crisis')
         self.assertTrue(body['crisis'])
         self.assertEqual(body['matched'][0]['phrase'], 'kill myself')
+        self.assertEqual(body['emergency'], '112')
+        self.assertTrue(
+            any('14416' in item['contact'] for item in body['resources'])
+        )
 
     def test_analyze_chat_empty(self):
         headers = self.signup('grace')

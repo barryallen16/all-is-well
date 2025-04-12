@@ -55,6 +55,10 @@ crisis detection is a reviewed phrase list in `backend/safety.py`, not the model
 it handles negation ("i am not suicidal"), third-person posts ("my friend..."), and past tense ("i used to...").
 it is deliberately narrow and will miss indirect distress, so the app is not a crisis service.
 
+crisis responses include Indian helplines: Tele-MANAS (14416 or 1-800-891-4416), KIRAN (1800-599-0019), and AASRA (+91 98204 66726), plus emergency 112.
+the app is India-only for now.
+the app shows a disclaimer under the check-in form.
+
 the text model is only a weak signal for a supportive message.
 it cannot trigger the crisis card.
 the baseline and the real-world check are:
@@ -65,12 +69,12 @@ uv run python eval_model.py   # the hand-written phrase contract
 uv run python eval_real.py    # 1170 real posts, needs internet
 ```
 
-the real-world set is `av9ash/CSSR-S_labelled_suicidewatch_posts_reddit` (CC BY 4.0).
+the real-world set is `av9ash/CSSR-S_labelled_suicidewatch_posts_reddit` (CC BY 4.0), used only for evaluation.
 it is fetched at runtime and not stored here.
 
 ## what each tab does
 
-- home: record a clip or type a thought. the backend transcribes the audio, then checks it for explicit crisis language. a match shows a support card and a real crisis resource. the model only adds a gentle message.
+- home: record a clip or type a thought. the backend transcribes the audio, then checks it for explicit crisis language. a match shows a support card and real crisis resources. the model only adds a gentle message.
 - activity: one daily activity and a streak, stored in `app.db`.
 - chat: your messages, stored in `app.db`, with an option to check in on the history. one explicit crisis message wins; benign messages do not average it away.
 
@@ -78,17 +82,17 @@ it is fetched at runtime and not stored here.
 
 authenticated routes need `Authorization: Bearer <token>`.
 
-| route                | auth | input                                                 | output                                                                                                       |
-| -------------------- | ---- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `POST /auth/signup`  | no   | `{"username": "...", "password": "..."}`              | `{"token": "..."}`                                                                                           |
-| `POST /auth/login`   | no   | `{"username": "...", "password": "..."}`              | `{"token": "..."}`                                                                                           |
-| `POST /auth/logout`  | yes  | none                                                  | `{"ok": true}`                                                                                               |
-| `GET /auth/me`       | yes  | none                                                  | `{"id": 1, "username": "..."}`                                                                               |
-| `POST /transcribe`   | yes  | multipart `file`                                      | `{"text": "..."}`                                                                                            |
-| `POST /predict_text` | yes  | `{"text": "..."}`                                     | `{"level": "crisis\|support\|none", "crisis": true, "about_self": true, "matched": [...], "message": "..."}` |
-| `POST /confessions`  | yes  | `{"content": "..."}`                                  | the saved confession                                                                                         |
-| `GET /messages`      | yes  | none                                                  | the user's messages                                                                                          |
-| `POST /messages`     | yes  | `{"content": "..."}`                                  | the saved message                                                                                            |
-| `POST /analyze_chat` | yes  | none                                                  | the same shape, chosen from the whole history; any crisis message wins                                       |
-| `GET /streak`        | yes  | none                                                  | `{"streak": 0, "last_completion_date": null}`                                                                |
-| `PUT /streak`        | yes  | `{"streak": 3, "last_completion_date": "2025-04-10"}` | the saved streak                                                                                             |
+| route                | auth | input                                                 | output                                                                                                                                               |
+| -------------------- | ---- | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POST /auth/signup`  | no   | `{"username": "...", "password": "..."}`              | `{"token": "..."}`                                                                                                                                   |
+| `POST /auth/login`   | no   | `{"username": "...", "password": "..."}`              | `{"token": "..."}`                                                                                                                                   |
+| `POST /auth/logout`  | yes  | none                                                  | `{"ok": true}`                                                                                                                                       |
+| `GET /auth/me`       | yes  | none                                                  | `{"id": 1, "username": "..."}`                                                                                                                       |
+| `POST /transcribe`   | yes  | multipart `file`                                      | `{"text": "..."}`                                                                                                                                    |
+| `POST /predict_text` | yes  | `{"text": "..."}`                                     | `{"level": "crisis\|support\|none", "crisis": true, "about_self": true, "matched": [...], "message": "...", "resources": [...], "emergency": "112"}` |
+| `POST /confessions`  | yes  | `{"content": "..."}`                                  | the saved confession                                                                                                                                 |
+| `GET /messages`      | yes  | none                                                  | the user's messages                                                                                                                                  |
+| `POST /messages`     | yes  | `{"content": "..."}`                                  | the saved message                                                                                                                                    |
+| `POST /analyze_chat` | yes  | none                                                  | the same shape, chosen from the whole history; any crisis message wins                                                                               |
+| `GET /streak`        | yes  | none                                                  | `{"streak": 0, "last_completion_date": null}`                                                                                                        |
+| `PUT /streak`        | yes  | `{"streak": 3, "last_completion_date": "2025-04-10"}` | the saved streak                                                                                                                                     |

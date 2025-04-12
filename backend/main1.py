@@ -10,6 +10,7 @@ import sqlite3
 import tempfile
 from werkzeug.security import check_password_hash, generate_password_hash
 from safety import find_crisis_phrases, looks_third_person
+from resources import crisis_resources
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -37,14 +38,12 @@ def get_whisper_model():
 
 CRISIS_MESSAGE = (
     "What you wrote sounds like you may be thinking about suicide or hurting yourself. "
-    "You deserve support right now. If you are in immediate danger, call your local "
-    "emergency number. Crisis lines by country are listed at findahelpline.com."
+    "You deserve support right now. You do not have to go through this alone."
 )
 
 THIRD_PARTY_MESSAGE = (
     "It sounds like someone you know may be thinking about suicide or self-harm. "
-    "You can help by staying with them and helping them contact a crisis line. "
-    "findahelpline.com lists services by country."
+    "You can help by staying with them and helping them contact a crisis line."
 )
 
 HISTORICAL_MESSAGE = (
@@ -70,12 +69,15 @@ def _model_suggests_support(text):
 
 
 def _result(level, crisis, about_self, matches, message):
+    resources, emergency = crisis_resources() if matches else ([], None)
     return {
         'level': level,
         'crisis': crisis,
         'about_self': about_self,
         'matched': [match.to_dict() for match in matches],
         'message': message,
+        'resources': resources,
+        'emergency': emergency,
     }
 
 
