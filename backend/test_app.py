@@ -90,18 +90,89 @@ class ApiTest(unittest.TestCase):
         headers = self.signup('dave')
         response = self.client.post(
             '/predict_text',
-            json={'text': 'I feel hopeless and tired'},
+            json={'text': 'I had a nice lunch'},
             headers=headers,
         )
         self.assertEqual(response.status_code, 200)
         body = response.get_json()
-        self.assertIn(body['risk'], ('Low', 'Medium', 'High'))
-        self.assertIn(body['score'], (0, 1, 2))
+        self.assertEqual(body['level'], 'none')
+        self.assertFalse(body['crisis'])
+        self.assertTrue(body['about_self'])
+        self.assertEqual(body['matched'], [])
         self.assertTrue(body['message'])
 
-    def test_high_risk_gets_the_crisis_line(self):
-        self.assertIn('crisis line', main1.encouragement('High'))
-        self.assertNotIn('crisis line', main1.encouragement('Low'))
+    def test_crisis_message_has_a_real_resource(self):
+        self.assertIn('findahelpline.com', main1.CRISIS_MESSAGE)
+
+    def test_predict_text_crisis_is_deterministic(self):
+        headers = self.signup('erin')
+        body = self.client.post(
+            '/predict_text',
+            json={'text': 'I want to kill myself'},
+            headers=headers,
+        ).get_json()
+        self.assertEqual(body['level'], 'crisis')
+        self.assertTrue(body['crisis'])
+        self.assertTrue(body['about_self'])
+        self.assertEqual(body['matched'][0]['phrase'], 'kill myself')
+
+    def test_negation_is_not_crisis(self):
+        headers = self.signup('erin2')
+        body = self.client.post(
+            '/predict_text',
+            json={'text': 'I am not suicidal'},
+            headers=headers,
+        ).get_json()
+        self.assertFalse(body['crisis'])
+        self.assertNotEqual(body['level'], 'crisis')
+
+    def test_third_party_is_support_not_crisis(self):
+        headers = self.signup('erin3')
+        body = self.client.post(
+            '/predict_text',
+            json={'text': 'my friend wants to kill himself'},
+            headers=headers,
+        ).get_json()
+        self.assertFalse(body['crisis'])
+        self.assertEqual(body['level'], 'support')
+        self.assertFalse(body['about_self'])
+
+    def test_historical_is_support_not_crisis(self):
+        headers = self.signup('erin4')
+        body = self.client.post(
+            '/predict_text',
+            json={'text': 'i used to cut myself'},
+            headers=headers,
+        ).get_json()
+        self.assertFalse(body['crisis'])
+        self.assertEqual(body['level'], 'support')
+        self.assertTrue(body['about_self'])
+
+    def test_analyze_chat_does_not_dilute_a_crisis(self):
+        headers = self.signup('frank')
+        for text in (
+            'i had a good day',
+            'work was fine',
+            'i am tired',
+            'i ate lunch',
+            'i watched a show',
+        ):
+            self.client.post('/messages', json={'content': text}, headers=headers)
+        self.client.post(
+            '/messages', json={'content': 'i want to kill myself'}, headers=headers
+        )
+
+        body = self.client.post('/analyze_chat', headers=headers).get_json()
+        self.assertEqual(body['level'], 'crisis')
+        self.assertTrue(body['crisis'])
+        self.assertEqual(body['matched'][0]['phrase'], 'kill myself')
+
+    def test_analyze_chat_empty(self):
+        headers = self.signup('grace')
+        body = self.client.post('/analyze_chat', headers=headers).get_json()
+        self.assertEqual(body['level'], 'none')
+        self.assertFalse(body['crisis'])
+        self.assertEqual(body['matched'], [])
 
     def test_transcribe_needs_a_file(self):
         headers = self.signup(self.username)

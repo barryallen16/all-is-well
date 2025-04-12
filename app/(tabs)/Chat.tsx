@@ -18,8 +18,18 @@ interface Message {
   user_id: number;
 }
 
-interface FlaskResponseData {
-  risk: string;
+interface CrisisMatch {
+  phrase: string;
+  kind: string;
+  about_self: boolean;
+  historical: boolean;
+}
+
+interface AnalysisResult {
+  level: 'crisis' | 'support' | 'none';
+  crisis: boolean;
+  about_self: boolean;
+  matched: CrisisMatch[];
   message: string;
 }
 
@@ -72,15 +82,24 @@ export default function Chat() {
 
   const analyzeMentalHealth = async () => {
     setIsProcessing(true);
-    const response = await api.post<FlaskResponseData>(
+    const response = await api.post<AnalysisResult>(
       '/analyze_chat',
       {},
       { headers: await authHeaders() }
     );
 
     if (response.ok && response.data) {
-      const { risk, message } = response.data;
-      Alert.alert('Mental Health Analysis', `Risk: ${risk}\nMessage: ${message}`);
+      const result = response.data;
+      const evidence = result.matched.map((match) => `- "${match.phrase}"`).join('\n');
+      const title = result.crisis
+        ? 'Support now'
+        : result.level === 'support'
+          ? 'Check-in'
+          : 'Analysis';
+      Alert.alert(
+        title,
+        evidence ? `${result.message}\n\nWhat we noticed:\n${evidence}` : result.message
+      );
     } else {
       setError('Failed to analyze chat.');
     }
@@ -105,7 +124,7 @@ export default function Chat() {
             <View className="mb-3 flex-row items-center justify-between">
               <Text className="text-lg font-semibold text-white">Messages</Text>
               <Pressable onPress={analyzeMentalHealth}>
-                <Text className="text-sm font-medium text-blue-400">Analyze Mental Health</Text>
+                <Text className="text-sm font-medium text-blue-400">Check in</Text>
               </Pressable>
             </View>
             {messages.length === 0 ? (

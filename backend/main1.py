@@ -9,6 +9,7 @@ import secrets
 import sqlite3
 import tempfile
 from werkzeug.security import check_password_hash, generate_password_hash
+from safety import find_crisis_phrases, looks_third_person
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -34,63 +35,79 @@ def get_whisper_model():
         whisper_model = WhisperModel('tiny.en', device='cpu', compute_type='int8')
     return whisper_model
 
-motivational_responses = {
-    "Low": [
-        "You're doing amazing! Keep spreading positivity wherever you go.",
-        "Your strength is inspiring—keep up the great work!",
-        "You’ve got a bright spirit! Celebrate the little wins today.",
-        "Keep that positive energy flowing—you’re on the right track!",
-        "You’re thriving! Take a moment to appreciate how far you’ve come."
-    ],
-    "Medium": [
-        "It’s okay to have off days—take a deep breath and give yourself some grace.",
-        "You’re stronger than you realize. Maybe try a calming activity like journaling?",
-        "Some days are tougher, but you’ve got this! How about a warm cup of tea to relax?",
-        "You’re doing your best, and that’s enough. Take it one step at a time.",
-        "It’s okay to feel this way. Maybe a short walk or some music can lift your spirits?"
-    ],
-    "High": [
-        "You’re not alone in this—reaching out to a friend or loved one can make a big difference.",
-        "Tough moments don’t last forever. You’re enough, just as you are, and help is always there.",
-        "It’s okay to feel overwhelmed. Consider talking to someone you trust when you’re ready.",
-        "You’re stronger than you think, even on hard days. Small steps forward are still progress.",
-        "You deserve care and support—don’t hesitate to reach out to someone who can listen."
-    ]
-}
-
 CRISIS_MESSAGE = (
-    "If you are in danger or thinking about harming yourself, contact your local "
-    "emergency number or a crisis line right away."
+    "What you wrote sounds like you may be thinking about suicide or hurting yourself. "
+    "You deserve support right now. If you are in immediate danger, call your local "
+    "emergency number. Crisis lines by country are listed at findahelpline.com."
 )
 
-def encouragement(risk_label):
-    message = random.choice(motivational_responses[risk_label])
-    if risk_label == "High":
-        message = f"{message}\n\n{CRISIS_MESSAGE}"
-    return message
+THIRD_PARTY_MESSAGE = (
+    "It sounds like someone you know may be thinking about suicide or self-harm. "
+    "You can help by staying with them and helping them contact a crisis line. "
+    "findahelpline.com lists services by country."
+)
 
-def analyze_text(text):
-    if text_model is None:
-        raise Exception("Text model not loaded")
-    return text_model.predict([text])[0]
+HISTORICAL_MESSAGE = (
+    "Thank you for sharing something from the past. If those thoughts come back, "
+    "please reach out to someone you trust or a crisis line."
+)
 
-def analyze_chat_messages(messages):
+SUPPORT_MESSAGES = [
+    "That sounds heavy. You do not have to carry it alone. Talking to someone you trust can help.",
+    "Thank you for putting that into words. Be gentle with yourself today, and reach out if it gets too much.",
+]
+
+NEUTRAL_MESSAGE = "Thanks for checking in. How are you feeling right now?"
+
+
+def _model_suggests_support(text):
+    """The model is only a weak signal for a supportive message."""
+    if text_model is None or len(text.strip()) < 40 or looks_third_person(text):
+        return False
+    probabilities = text_model.predict_proba([text])[0]
+    predicted = int(text_model.classes_[probabilities.argmax()])
+    return predicted in (1, 2) and max(probabilities) >= 0.8
+
+
+def _result(level, crisis, about_self, matches, message):
+    return {
+        'level': level,
+        'crisis': crisis,
+        'about_self': about_self,
+        'matched': [match.to_dict() for match in matches],
+        'message': message,
+    }
+
+
+def analyze(text):
+    matches = find_crisis_phrases(text)
+    current_self = [match for match in matches if match.urgent and match.about_self]
+    current_other = [match for match in matches if match.urgent and not match.about_self]
+    historical = [match for match in matches if match.historical]
+
+    if current_self:
+        return _result('crisis', True, True, matches, CRISIS_MESSAGE)
+    if current_other:
+        return _result('support', False, False, matches, THIRD_PARTY_MESSAGE)
+    if historical:
+        return _result('support', False, True, matches, HISTORICAL_MESSAGE)
+    if _model_suggests_support(text):
+        return _result('support', False, True, matches, random.choice(SUPPORT_MESSAGES))
+    return _result('none', False, True, matches, NEUTRAL_MESSAGE)
+
+
+def analyze_messages(messages):
     if not messages:
-        return "Low", "No messages to analyze yet—keep chatting!"
+        return _result('none', False, True, [], 'No messages to analyze yet.')
 
-    # Aggregate scores from all messages
-    scores = [int(analyze_text(msg)) for msg in messages]
-    avg_score = sum(scores) / len(scores)
+    results = [analyze(message) for message in messages]
+    chosen = next((result for result in results if result['crisis']), None)
+    if chosen is None:
+        chosen = next((result for result in results if result['level'] == 'support'), None)
+    if chosen is None:
+        return _result('none', False, True, [], NEUTRAL_MESSAGE)
+    return chosen
 
-    # Map average score to risk level
-    if avg_score < 0.5:
-        risk_label = "Low"
-    elif avg_score < 1.5:
-        risk_label = "Medium"
-    else:
-        risk_label = "High"
-
-    return risk_label, encouragement(risk_label)
 
 def get_db():
     if 'db' not in g:
@@ -230,20 +247,13 @@ def me():
 @app.route('/predict_text', methods=['POST'])
 @require_auth
 def predict_text():
+    data = request.get_json(silent=True) or {}
+    text = (data.get('text') or '').strip()
+    if not text:
+        return jsonify({'error': 'No text provided'}), 400
+
     try:
-        data = request.get_json() or {}
-        text = data.get('text', '')
-        if not text:
-            return jsonify({'error': 'No text provided'}), 400
-
-        risk_score = int(analyze_text(text))
-        risk_label = {0: 'Low', 1: 'Medium', 2: 'High'}[risk_score]
-
-        return jsonify({
-            'risk': risk_label,
-            'score': risk_score,
-            'message': encouragement(risk_label)
-        })
+        return jsonify(analyze(text))
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -327,10 +337,11 @@ def create_message():
 @require_auth
 def analyze_chat():
     rows = get_db().execute(
-        'SELECT content FROM chat_messages WHERE user_id = ?', (g.user_id,)
+        '''SELECT content FROM chat_messages WHERE user_id = ?
+           ORDER BY created_at DESC, id DESC''',
+        (g.user_id,),
     ).fetchall()
-    risk_label, message = analyze_chat_messages([row['content'] for row in rows])
-    return jsonify({'risk': risk_label, 'message': message})
+    return jsonify(analyze_messages([row['content'] for row in rows]))
 
 @app.route('/streak', methods=['GET'])
 @require_auth

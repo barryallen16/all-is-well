@@ -24,8 +24,18 @@ interface TranscriptionResponseData {
   text: string;
 }
 
-interface FlaskResponseData {
-  risk: string;
+interface CrisisMatch {
+  phrase: string;
+  kind: string;
+  about_self: boolean;
+  historical: boolean;
+}
+
+interface AnalysisResult {
+  level: 'crisis' | 'support' | 'none';
+  crisis: boolean;
+  about_self: boolean;
+  matched: CrisisMatch[];
   message: string;
 }
 
@@ -96,8 +106,7 @@ export default function Home() {
   const [permissionResponse, requestPermission] = Audio.usePermissions();
   const [audioUri, setAudioUri] = useState<string | null>(null);
   const [transcription, setTranscription] = useState<string | null>(null);
-  const [risk, setRisk] = useState<RiskLevel | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
+  const [result, setResult] = useState<AnalysisResult | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [inputText, setInputText] = useState<string>('');
@@ -160,8 +169,7 @@ export default function Home() {
       setRecording(recording);
       setAudioUri(null);
       setTranscription(null);
-      setRisk(null);
-      setMessage(null);
+      setResult(null);
       setError(null);
       setInputText('');
       setIsProcessing(false);
@@ -216,7 +224,7 @@ export default function Home() {
         const transcriptionText = response.data.text;
         setTranscription(transcriptionText);
         console.log(`Transcription: ${transcriptionText}`);
-        await predictRisk(transcriptionText);
+        await analyzeText(transcriptionText);
       } else {
         console.error('Transcription failed', response.problem, response.data);
         setError('Transcription failed. Please try again.');
@@ -234,28 +242,25 @@ export default function Home() {
     }
   }
 
-  async function predictRisk(text: string) {
+  async function analyzeText(text: string) {
     try {
       setIsProcessing(true);
 
-      const response = await api.post<FlaskResponseData>(
+      const response = await api.post<AnalysisResult>(
         '/predict_text',
         { text },
         { headers: await authHeaders() }
       );
 
       if (response.ok && response.data) {
-        const { risk, message } = response.data;
-        setRisk(risk as RiskLevel); // Cast to RiskLevel
-        setMessage(message);
-        console.log(`Predicted Risk: ${risk}, Message: ${message}`);
+        setResult(response.data);
       } else {
-        console.error('Risk prediction failed', response.problem, response.data);
-        setError('Failed to predict risk.');
+        console.error('Analysis failed', response.problem, response.data);
+        setError('Failed to analyze your entry.');
       }
     } catch (err) {
-      console.error('Error predicting risk:', err);
-      setError('An error occurred during risk prediction.');
+      console.error('Error analyzing entry:', err);
+      setError('An error occurred during analysis.');
     } finally {
       setIsProcessing(false);
     }
@@ -267,10 +272,9 @@ export default function Home() {
       return;
     }
     setTranscription(null);
-    setRisk(null);
-    setMessage(null);
+    setResult(null);
     setError(null);
-    await predictRisk(inputText);
+    await analyzeText(inputText);
     Keyboard.dismiss();
   };
 
@@ -313,7 +317,9 @@ export default function Home() {
     }
   };
 
-  const currentColors = risk ? colorSets[risk] : colorSets.Low;
+  const colorKey: RiskLevel =
+    result?.level === 'crisis' ? 'High' : result?.level === 'support' ? 'Medium' : 'Low';
+  const currentColors = colorSets[colorKey];
   const backgroundColor = Platform.OS === 'android' ? currentColors.solidColor : 'transparent';
 
   return (
@@ -421,7 +427,7 @@ export default function Home() {
               </Animated.View>
             </View>
 
-            {(transcription || risk || message) && (
+            {(transcription || result) && (
               <View className="mb-4 rounded-xl bg-gray-800 p-4 shadow-md">
                 <Text className="mb-3 text-lg font-semibold text-white">Results</Text>
                 {transcription && (
@@ -430,16 +436,17 @@ export default function Home() {
                     <Text className="mt-1 text-base text-gray-300">{transcription}</Text>
                   </View>
                 )}
-                {risk && (
-                  <View className="mb-3">
-                    <Text className="text-base font-medium text-white">Predicted Risk:</Text>
-                    <Text className="mt-1 text-base text-gray-300">{risk}</Text>
-                  </View>
-                )}
-                {message && (
-                  <View>
-                    <Text className="text-base font-medium text-white">Message for You:</Text>
-                    <Text className="mt-1 text-base text-gray-300">{message}</Text>
+                {result && (
+                  <View
+                    className={
+                      result.crisis ? 'rounded-lg border border-red-400 bg-red-950 p-3' : ''
+                    }>
+                    {result.crisis && (
+                      <Text className="mb-1 text-base font-semibold text-white">
+                        Support right now
+                      </Text>
+                    )}
+                    <Text className="text-base text-gray-200">{result.message}</Text>
                   </View>
                 )}
               </View>
