@@ -146,6 +146,7 @@ def init_db():
 
             CREATE TABLE IF NOT EXISTS confessions (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
                 content TEXT NOT NULL,
                 created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
             );
@@ -165,6 +166,15 @@ def init_db():
             );
             '''
         )
+        confession_columns = {
+            row[1] for row in db.execute('PRAGMA table_info(confessions)').fetchall()
+        }
+        if 'user_id' not in confession_columns:
+            # Old anonymous rows keep a NULL owner and are not returned to anyone.
+            db.execute(
+                'ALTER TABLE confessions ADD COLUMN user_id INTEGER '
+                'REFERENCES users(id) ON DELETE CASCADE'
+            )
         db.commit()
     finally:
         db.close()
@@ -297,13 +307,39 @@ def create_confession():
         return jsonify({'error': 'Confession must be 500 characters or less'}), 400
 
     db = get_db()
-    cursor = db.execute('INSERT INTO confessions (content) VALUES (?)', (content,))
+    cursor = db.execute(
+        'INSERT INTO confessions (user_id, content) VALUES (?, ?)',
+        (g.user_id, content),
+    )
     db.commit()
     row = db.execute(
-        'SELECT id, content, created_at FROM confessions WHERE id = ?',
-        (cursor.lastrowid,),
+        'SELECT id, content, created_at FROM confessions WHERE id = ? AND user_id = ?',
+        (cursor.lastrowid, g.user_id),
     ).fetchone()
     return jsonify(dict(row)), 201
+
+@app.route('/confessions', methods=['GET'])
+@require_auth
+def list_confessions():
+    rows = get_db().execute(
+        '''SELECT id, content, created_at FROM confessions
+           WHERE user_id = ? ORDER BY created_at DESC, id DESC''',
+        (g.user_id,),
+    ).fetchall()
+    return jsonify([dict(row) for row in rows])
+
+@app.route('/confessions/<int:confession_id>', methods=['DELETE'])
+@require_auth
+def delete_confession(confession_id):
+    db = get_db()
+    cursor = db.execute(
+        'DELETE FROM confessions WHERE id = ? AND user_id = ?',
+        (confession_id, g.user_id),
+    )
+    db.commit()
+    if cursor.rowcount == 0:
+        return jsonify({'error': 'Confession not found'}), 404
+    return jsonify({'ok': True})
 
 @app.route('/messages', methods=['GET'])
 @require_auth

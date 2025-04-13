@@ -43,6 +43,8 @@ class ApiTest(unittest.TestCase):
 
     def test_protected_routes_need_a_token(self):
         self.assertEqual(self.client.get('/messages').status_code, 401)
+        self.assertEqual(self.client.get('/confessions').status_code, 401)
+        self.assertEqual(self.client.delete('/confessions/1').status_code, 401)
         self.assertEqual(self.client.get('/streak').status_code, 401)
         self.assertEqual(
             self.client.post('/predict_text', json={'text': 'hello'}).status_code, 401
@@ -63,6 +65,39 @@ class ApiTest(unittest.TestCase):
         self.assertEqual(alice_messages[0]['content'], 'alice only')
 
         self.assertEqual(self.client.get('/messages', headers=bob).get_json(), [])
+
+    def test_confessions_are_private(self):
+        alice = self.signup('alice3')
+        bob = self.signup('bob3')
+
+        alice_confession = self.client.post(
+            '/confessions', json={'content': 'alice secret'}, headers=alice
+        ).get_json()
+        bob_confession = self.client.post(
+            '/confessions', json={'content': 'bob secret'}, headers=bob
+        ).get_json()
+
+        alice_list = self.client.get('/confessions', headers=alice).get_json()
+        self.assertEqual([item['content'] for item in alice_list], ['alice secret'])
+        bob_list = self.client.get('/confessions', headers=bob).get_json()
+        self.assertEqual([item['content'] for item in bob_list], ['bob secret'])
+
+        cannot_delete = self.client.delete(
+            f"/confessions/{alice_confession['id']}", headers=bob
+        )
+        self.assertEqual(cannot_delete.status_code, 404)
+
+        deleted = self.client.delete(
+            f"/confessions/{alice_confession['id']}", headers=alice
+        )
+        self.assertEqual(deleted.status_code, 200)
+        self.assertEqual(self.client.get('/confessions', headers=alice).get_json(), [])
+        self.assertEqual(
+            self.client.delete(
+                f"/confessions/{bob_confession['id']}", headers=bob
+            ).status_code,
+            200,
+        )
 
     def test_confession_and_streak(self):
         headers = self.signup('carol')

@@ -317,7 +317,7 @@ export default function Home() {
       );
 
       if (response.ok) {
-        Alert.alert('Success', 'Your confession has been submitted anonymously.');
+        Alert.alert('Saved', 'Your confession was saved privately.');
         setConfessionText('');
         Keyboard.dismiss();
       } else if (response.status === 401) {
