@@ -48,6 +48,20 @@ const mentalHealthActivities = [
   'Step away from screens for 10 minutes and rest your eyes.',
 ];
 
+function formatLocalDate(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function addDays(dateString: string, days: number) {
+  const [year, month, day] = dateString.split('-').map(Number);
+  const date = new Date(year, month - 1, day);
+  date.setDate(date.getDate() + days);
+  return formatLocalDate(date);
+}
+
 export default function Activity() {
   const [dailyActivity, setDailyActivity] = useState<string>('');
   const [streak, setStreak] = useState<number>(0);
@@ -55,7 +69,7 @@ export default function Activity() {
   const [lastCompletionDate, setLastCompletionDate] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const getCurrentDate = () => new Date().toISOString().split('T')[0];
+  const getCurrentDate = () => formatLocalDate(new Date());
 
   const loadStreakData = async () => {
     const response = await api.get<StreakData>('/streak', undefined, {
@@ -69,9 +83,7 @@ export default function Activity() {
 
     const { streak: storedStreak, last_completion_date: storedDate } = response.data;
     const today = getCurrentDate();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().split('T')[0];
+    const yesterdayStr = addDays(today, -1);
 
     setLastCompletionDate(storedDate);
     setStreak(storedDate === today || storedDate === yesterdayStr ? storedStreak : 0);
@@ -107,9 +119,7 @@ export default function Activity() {
       return;
     }
 
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().split('T')[0];
+    const yesterdayStr = addDays(today, -1);
 
     let newStreak = streak;
     if (lastCompletionDate === yesterdayStr) {
