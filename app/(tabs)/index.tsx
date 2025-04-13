@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Audio } from 'expo-av';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import * as FileSystem from 'expo-file-system';
 import FormData from 'form-data';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -57,6 +57,12 @@ const points: [number, number][] = [
   [0.5, 1.0],
   [1.0, 1.0],
 ];
+
+const MAX_RECORDING_SECONDS = 120;
+
+function formatDuration(seconds: number) {
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+}
 
 type RiskLevel = 'Low' | 'Medium' | 'High';
 interface ColorSet {
@@ -118,6 +124,8 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [inputText, setInputText] = useState<string>('');
   const [confessionText, setConfessionText] = useState<string>('');
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const isStoppingRef = useRef(false);
 
   const confessionSectionHeight = useSharedValue(0);
   const thoughtsSectionHeight = useSharedValue(0);
@@ -147,18 +155,21 @@ export default function Home() {
   };
 
   useEffect(() => {
-    (async () => {
-      if (permissionResponse?.status !== 'granted') {
-        const permission = await requestPermission();
-        if (!permission.granted) {
-          Alert.alert(
-            'Permission Denied',
-            'Microphone access is required to record audio. Please enable it in settings.'
-          );
-        }
-      }
-    })();
-  }, [permissionResponse, requestPermission]);
+    if (!recording) {
+      setRecordingSeconds(0);
+      return;
+    }
+    const interval = setInterval(() => {
+      setRecordingSeconds((seconds) => Math.min(seconds + 1, MAX_RECORDING_SECONDS));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [recording]);
+
+  useEffect(() => {
+    if (recording && recordingSeconds >= MAX_RECORDING_SECONDS) {
+      void StopRecording();
+    }
+  }, [recording, recordingSeconds]);
 
   async function StartRecording() {
     try {
@@ -187,9 +198,9 @@ export default function Home() {
   }
 
   async function StopRecording() {
+    if (!recording || isStoppingRef.current) return;
+    isStoppingRef.current = true;
     try {
-      if (!recording) return;
-
       await recording.stopAndUnloadAsync();
       await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
       const uri = recording.getURI();
@@ -205,6 +216,7 @@ export default function Home() {
       Alert.alert('Error', 'Could not stop recording. Please try again.');
       setError('Failed to stop recording.');
     } finally {
+      isStoppingRef.current = false;
       setRecording(null);
     }
   }
@@ -371,6 +383,11 @@ export default function Home() {
                   <MaterialIcons name="stop" size={24} color="#ffffff" />
                   <Text className="ml-2 text-lg font-semibold text-white">Stop Recording</Text>
                 </Pressable>
+              )}
+              {recording && (
+                <Text className="mt-3 text-base text-gray-300">
+                  Recording {formatDuration(recordingSeconds)} of 2:00
+                </Text>
               )}
             </View>
 

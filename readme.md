@@ -74,7 +74,7 @@ it is fetched at runtime and not stored here.
 
 ## what each tab does
 
-- home: record a clip or type a thought. the backend transcribes the audio, then checks it for explicit crisis language. a match shows a support card and real crisis resources. the model only adds a gentle message.
+- home: record a clip or type a thought. the mic is requested when you tap record, and recordings stop at 2 minutes. the backend transcribes the audio, then checks it for explicit crisis language. a match shows a support card and real crisis resources. the model only adds a gentle message.
 - activity: one daily activity and a streak, stored in `app.db`.
 - chat: your messages, stored in `app.db`, with an option to check in on the history. one explicit crisis message wins; benign messages do not average it away.
 
