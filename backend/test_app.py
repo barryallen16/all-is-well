@@ -20,6 +20,14 @@ class ApiTest(unittest.TestCase):
         self.assertEqual(response.status_code, 201)
         return {'Authorization': f"Bearer {response.get_json()['token']}"}
 
+    def test_resources_are_public(self):
+        response = self.client.get('/resources')
+        self.assertEqual(response.status_code, 200)
+        body = response.get_json()
+        self.assertEqual(body['emergency'], '112')
+        contacts = ' '.join(item['contact'] for item in body['resources'])
+        self.assertIn('14416', contacts)
+
     def test_signup_login_and_duplicate(self):
         headers = self.signup('alice')
         me = self.client.get('/auth/me', headers=headers)

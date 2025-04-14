@@ -9,6 +9,7 @@ import {
   ScrollView,
   Platform,
   Keyboard,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Audio } from 'expo-av';
@@ -126,6 +127,11 @@ export default function Home() {
   const [confessionText, setConfessionText] = useState<string>('');
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const isStoppingRef = useRef(false);
+  const [helpVisible, setHelpVisible] = useState(false);
+  const [helpResources, setHelpResources] = useState<CrisisResource[]>([]);
+  const [helpEmergency, setHelpEmergency] = useState<string | null>(null);
+  const [helpLoading, setHelpLoading] = useState(false);
+  const [helpError, setHelpError] = useState<string | null>(null);
 
   const confessionSectionHeight = useSharedValue(0);
   const thoughtsSectionHeight = useSharedValue(0);
@@ -336,6 +342,30 @@ export default function Home() {
     }
   };
 
+  const openHelp = async () => {
+    setHelpVisible(true);
+    if (helpResources.length > 0) return;
+
+    setHelpLoading(true);
+    setHelpError(null);
+    try {
+      const response = await api.get<{ resources: CrisisResource[]; emergency: string }>(
+        '/resources'
+      );
+      if (!response.ok || !response.data) {
+        setHelpError('Could not load helplines. If you are in immediate danger, call 112.');
+        return;
+      }
+      setHelpResources(response.data.resources);
+      setHelpEmergency(response.data.emergency);
+    } catch (err) {
+      console.error('Failed to load help resources', err);
+      setHelpError('Could not load helplines. If you are in immediate danger, call 112.');
+    } finally {
+      setHelpLoading(false);
+    }
+  };
+
   const colorKey: RiskLevel =
     result?.level === 'crisis' ? 'High' : result?.level === 'support' ? 'Medium' : 'Low';
   const currentColors = colorSets[colorKey];
@@ -362,6 +392,11 @@ export default function Home() {
           contentContainerStyle={{ flexGrow: 1, paddingBottom: 20 }}>
           <View className="items-center border-b border-gray-700 bg-gray-900 p-5 shadow-md">
             <Text className="text-3xl font-extrabold tracking-wide text-white">All Is Well</Text>
+            <Pressable
+              className="absolute right-4 top-5 rounded-full bg-red-700 px-3 py-1"
+              onPress={openHelp}>
+              <Text className="text-sm font-semibold text-white">Get help</Text>
+            </Pressable>
           </View>
 
           <View className="flex-1 p-4">
@@ -504,6 +539,41 @@ export default function Home() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <Modal
+        visible={helpVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setHelpVisible(false)}>
+        <View
+          className="flex-1 items-center justify-center p-6"
+          style={{ backgroundColor: 'rgba(0, 0, 0, 0.7)' }}>
+          <View className="w-full rounded-xl bg-gray-800 p-5">
+            <Text className="text-xl font-bold text-white">Get help now</Text>
+            <Text className="mt-1 text-sm text-gray-300">These helplines are for India.</Text>
+
+            {helpLoading && <ActivityIndicator className="mt-4" color="#ffffff" />}
+            {helpError && <Text className="mt-4 text-sm text-red-300">{helpError}</Text>}
+
+            {helpResources.map((resource) => (
+              <View key={resource.name} className="mt-3">
+                <Text className="text-base font-semibold text-white">{resource.name}</Text>
+                <Text className="mt-1 text-sm text-gray-300">{resource.contact}</Text>
+              </View>
+            ))}
+
+            <Text className="mt-4 text-sm text-white">
+              If you are in immediate danger, call {helpEmergency ?? '112'}.
+            </Text>
+
+            <Pressable
+              className="mt-5 self-center rounded-lg bg-gray-600 px-5 py-2"
+              onPress={() => setHelpVisible(false)}>
+              <Text className="text-base font-semibold text-white">Close</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }

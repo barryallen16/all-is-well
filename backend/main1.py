@@ -271,6 +271,11 @@ def me():
     ).fetchone()
     return jsonify(dict(user))
 
+@app.route('/resources', methods=['GET'])
+def get_resources():
+    items, emergency = crisis_resources()
+    return jsonify({'resources': items, 'emergency': emergency})
+
 @app.route('/predict_text', methods=['POST'])
 @require_auth
 def predict_text():
