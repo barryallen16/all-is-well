@@ -317,7 +317,7 @@ export default function Home() {
       );
 
       if (response.ok) {
-        Alert.alert('Saved', 'Your confession was saved privately.');
+        Alert.alert('Saved', 'Your confession was saved privately. Read or delete it in Profile.');
         setConfessionText('');
         Keyboard.dismiss();
       } else if (response.status === 401) {

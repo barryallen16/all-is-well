@@ -77,6 +77,7 @@ it is fetched at runtime and not stored here.
 - home: record a clip or type a thought. the mic is requested when you tap record, and recordings stop at 2 minutes. the backend transcribes the audio, then checks it for explicit crisis language. a match shows a support card and real crisis resources. the model only adds a gentle message. the confession form is private to your account.
 - activity: one daily activity, a server-computed streak, and recent check-ins, stored in `app.db`.
 - chat: your messages, stored in `app.db`, with an option to check in on the history. one explicit crisis message wins; benign messages do not average it away.
+- profile: your private journal. read or delete saved confessions.
 
 ## backend routes
 
