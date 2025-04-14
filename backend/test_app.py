@@ -1,3 +1,4 @@
+from datetime import date, timedelta
 import os
 import tempfile
 import unittest
@@ -45,7 +46,7 @@ class ApiTest(unittest.TestCase):
         self.assertEqual(self.client.get('/messages').status_code, 401)
         self.assertEqual(self.client.get('/confessions').status_code, 401)
         self.assertEqual(self.client.delete('/confessions/1').status_code, 401)
-        self.assertEqual(self.client.get('/streak').status_code, 401)
+        self.assertEqual(self.client.get('/checkins').status_code, 401)
         self.assertEqual(
             self.client.post('/predict_text', json={'text': 'hello'}).status_code, 401
         )
@@ -99,7 +100,7 @@ class ApiTest(unittest.TestCase):
             200,
         )
 
-    def test_confession_and_streak(self):
+    def test_confession(self):
         headers = self.signup('carol')
 
         confession = self.client.post(
@@ -108,18 +109,73 @@ class ApiTest(unittest.TestCase):
         self.assertEqual(confession.status_code, 201)
         self.assertEqual(confession.get_json()['content'], 'a secret')
 
-        empty = self.client.get('/streak', headers=headers).get_json()
-        self.assertEqual(empty, {'streak': 0, 'last_completion_date': None})
+    def test_checkins_and_streak(self):
+        headers = self.signup('heidi')
+        today = date.today()
+        today_str = today.isoformat()
+        yesterday_str = (today - timedelta(days=1)).isoformat()
 
-        saved = self.client.put(
-            '/streak',
-            json={'streak': 4, 'last_completion_date': '2025-04-10'},
+        empty = self.client.get(
+            f'/checkins?today={today_str}', headers=headers
+        ).get_json()
+        self.assertEqual(empty, {'streak': 0, 'checkins': []})
+
+        first = self.client.post(
+            '/checkins',
+            json={'local_date': yesterday_str, 'activity': 'take a walk'},
             headers=headers,
         )
-        self.assertEqual(saved.status_code, 200)
+        self.assertEqual(first.status_code, 201)
+        second = self.client.post(
+            '/checkins',
+            json={'local_date': today_str, 'activity': 'breathe'},
+            headers=headers,
+        )
+        self.assertEqual(second.status_code, 201)
 
-        loaded = self.client.get('/streak', headers=headers).get_json()
-        self.assertEqual(loaded, {'streak': 4, 'last_completion_date': '2025-04-10'})
+        duplicate = self.client.post(
+            '/checkins',
+            json={'local_date': today_str, 'activity': 'something else'},
+            headers=headers,
+        )
+        self.assertEqual(duplicate.status_code, 200)
+
+        body = self.client.get(
+            f'/checkins?today={today_str}', headers=headers
+        ).get_json()
+        self.assertEqual(body['streak'], 2)
+        self.assertEqual(
+            [item['activity'] for item in body['checkins']],
+            ['breathe', 'take a walk'],
+        )
+
+        bad_date = self.client.post(
+            '/checkins',
+            json={'local_date': 'not-a-date', 'activity': 'walk'},
+            headers=headers,
+        )
+        self.assertEqual(bad_date.status_code, 400)
+
+        too_far = (today + timedelta(days=2)).isoformat()
+        future = self.client.post(
+            '/checkins',
+            json={'local_date': too_far, 'activity': 'walk'},
+            headers=headers,
+        )
+        self.assertEqual(future.status_code, 400)
+
+    def test_current_streak(self):
+        today = date(2025, 10, 21)
+        self.assertEqual(main1.current_streak([], today), 0)
+        self.assertEqual(
+            main1.current_streak([today - timedelta(days=1)], today), 1
+        )
+        self.assertEqual(
+            main1.current_streak([today, today - timedelta(days=1)], today), 2
+        )
+        self.assertEqual(
+            main1.current_streak([today - timedelta(days=2)], today), 0
+        )
 
     def test_predict_text(self):
         headers = self.signup('dave')

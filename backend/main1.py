@@ -1,6 +1,7 @@
 from flask import Flask, g, jsonify, request
 from flask_cors import CORS
 from faster_whisper import WhisperModel
+from datetime import date, timedelta
 from functools import wraps
 import joblib
 import os
@@ -111,6 +112,18 @@ def analyze_messages(messages):
     return chosen
 
 
+def current_streak(checkin_dates, today):
+    dates = set(checkin_dates)
+    if today not in dates and today - timedelta(days=1) not in dates:
+        return 0
+    day = today if today in dates else today - timedelta(days=1)
+    streak = 0
+    while day in dates:
+        streak += 1
+        day -= timedelta(days=1)
+    return streak
+
+
 def get_db():
     if 'db' not in g:
         db = sqlite3.connect(DB_PATH)
@@ -158,11 +171,13 @@ def init_db():
                 created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
             );
 
-            CREATE TABLE IF NOT EXISTS streaks (
-                user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-                streak INTEGER NOT NULL,
-                last_completion_date TEXT NOT NULL,
-                updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+            CREATE TABLE IF NOT EXISTS checkins (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                local_date TEXT NOT NULL,
+                activity TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+                UNIQUE(user_id, local_date)
             );
             '''
         )
@@ -381,39 +396,65 @@ def analyze_chat():
     ).fetchall()
     return jsonify(analyze_messages([row['content'] for row in rows]))
 
-@app.route('/streak', methods=['GET'])
+@app.route('/checkins', methods=['GET'])
 @require_auth
-def get_streak():
-    row = get_db().execute(
-        'SELECT streak, last_completion_date FROM streaks WHERE user_id = ?',
-        (g.user_id,),
-    ).fetchone()
-    if row is None:
-        return jsonify({'streak': 0, 'last_completion_date': None})
-    return jsonify(dict(row))
+def list_checkins():
+    today_arg = request.args.get('today')
+    if today_arg:
+        try:
+            today = date.fromisoformat(today_arg)
+        except ValueError:
+            return jsonify({'error': 'today must be YYYY-MM-DD'}), 400
+    else:
+        today = date.today()
 
-@app.route('/streak', methods=['PUT'])
+    rows = get_db().execute(
+        '''SELECT id, local_date, activity, created_at FROM checkins
+           WHERE user_id = ? ORDER BY local_date DESC, id DESC''',
+        (g.user_id,),
+    ).fetchall()
+    checkins = [dict(row) for row in rows]
+    streak = current_streak(
+        [date.fromisoformat(row['local_date']) for row in checkins], today
+    )
+    return jsonify({'streak': streak, 'checkins': checkins})
+
+@app.route('/checkins', methods=['POST'])
 @require_auth
-def save_streak():
+def create_checkin():
     data = request.get_json(silent=True) or {}
+    local_date = (data.get('local_date') or '').strip()
+    activity = (data.get('activity') or '').strip()
+    if not activity:
+        return jsonify({'error': 'Activity is required'}), 400
+    if len(activity) > 200:
+        return jsonify({'error': 'Activity must be 200 characters or less'}), 400
     try:
-        streak = int(data.get('streak'))
-        last_completion_date = str(data.get('last_completion_date'))
-    except (TypeError, ValueError):
-        return jsonify({'error': 'streak and last_completion_date are required'}), 400
+        parsed_date = date.fromisoformat(local_date)
+    except ValueError:
+        return jsonify({'error': 'local_date must be YYYY-MM-DD'}), 400
+
+    server_today = date.today()
+    if not (
+        server_today - timedelta(days=1)
+        <= parsed_date
+        <= server_today + timedelta(days=1)
+    ):
+        return jsonify({'error': 'Check-in must be for today'}), 400
 
     db = get_db()
-    db.execute(
-        '''INSERT INTO streaks (user_id, streak, last_completion_date)
-           VALUES (?, ?, ?)
-           ON CONFLICT(user_id) DO UPDATE SET
-               streak = excluded.streak,
-               last_completion_date = excluded.last_completion_date,
-               updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')''',
-        (g.user_id, streak, last_completion_date),
+    cursor = db.execute(
+        '''INSERT OR IGNORE INTO checkins (user_id, local_date, activity)
+           VALUES (?, ?, ?)''',
+        (g.user_id, local_date, activity),
     )
     db.commit()
-    return jsonify({'streak': streak, 'last_completion_date': last_completion_date})
+    row = db.execute(
+        '''SELECT id, local_date, activity, created_at FROM checkins
+           WHERE user_id = ? AND local_date = ?''',
+        (g.user_id, local_date),
+    ).fetchone()
+    return jsonify(dict(row)), 201 if cursor.rowcount else 200
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

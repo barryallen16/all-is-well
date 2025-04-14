@@ -75,26 +75,26 @@ it is fetched at runtime and not stored here.
 ## what each tab does
 
 - home: record a clip or type a thought. the mic is requested when you tap record, and recordings stop at 2 minutes. the backend transcribes the audio, then checks it for explicit crisis language. a match shows a support card and real crisis resources. the model only adds a gentle message. the confession form is private to your account.
-- activity: one daily activity and a streak, stored in `app.db`.
+- activity: one daily activity, a server-computed streak, and recent check-ins, stored in `app.db`.
 - chat: your messages, stored in `app.db`, with an option to check in on the history. one explicit crisis message wins; benign messages do not average it away.
 
 ## backend routes
 
 authenticated routes need `Authorization: Bearer <token>`.
 
-| route                      | auth | input                                                 | output                                                                                                                                               |
-| -------------------------- | ---- | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `POST /auth/signup`        | no   | `{"username": "...", "password": "..."}`              | `{"token": "..."}`                                                                                                                                   |
-| `POST /auth/login`         | no   | `{"username": "...", "password": "..."}`              | `{"token": "..."}`                                                                                                                                   |
-| `POST /auth/logout`        | yes  | none                                                  | `{"ok": true}`                                                                                                                                       |
-| `GET /auth/me`             | yes  | none                                                  | `{"id": 1, "username": "..."}`                                                                                                                       |
-| `POST /transcribe`         | yes  | multipart `file`                                      | `{"text": "..."}`                                                                                                                                    |
-| `POST /predict_text`       | yes  | `{"text": "..."}`                                     | `{"level": "crisis\|support\|none", "crisis": true, "about_self": true, "matched": [...], "message": "...", "resources": [...], "emergency": "112"}` |
-| `POST /confessions`        | yes  | `{"content": "..."}`                                  | the saved confession                                                                                                                                 |
-| `GET /confessions`         | yes  | none                                                  | the user's confessions                                                                                                                               |
-| `DELETE /confessions/<id>` | yes  | none                                                  | `{"ok": true}` if the user owns it                                                                                                                   |
-| `GET /messages`            | yes  | none                                                  | the user's messages                                                                                                                                  |
-| `POST /messages`           | yes  | `{"content": "..."}`                                  | the saved message                                                                                                                                    |
-| `POST /analyze_chat`       | yes  | none                                                  | the same shape, chosen from the whole history; any crisis message wins                                                                               |
-| `GET /streak`              | yes  | none                                                  | `{"streak": 0, "last_completion_date": null}`                                                                                                        |
-| `PUT /streak`              | yes  | `{"streak": 3, "last_completion_date": "2025-04-10"}` | the saved streak                                                                                                                                     |
+| route                            | auth | input                                             | output                                                                                                                                               |
+| -------------------------------- | ---- | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POST /auth/signup`              | no   | `{"username": "...", "password": "..."}`          | `{"token": "..."}`                                                                                                                                   |
+| `POST /auth/login`               | no   | `{"username": "...", "password": "..."}`          | `{"token": "..."}`                                                                                                                                   |
+| `POST /auth/logout`              | yes  | none                                              | `{"ok": true}`                                                                                                                                       |
+| `GET /auth/me`                   | yes  | none                                              | `{"id": 1, "username": "..."}`                                                                                                                       |
+| `POST /transcribe`               | yes  | multipart `file`                                  | `{"text": "..."}`                                                                                                                                    |
+| `POST /predict_text`             | yes  | `{"text": "..."}`                                 | `{"level": "crisis\|support\|none", "crisis": true, "about_self": true, "matched": [...], "message": "...", "resources": [...], "emergency": "112"}` |
+| `POST /confessions`              | yes  | `{"content": "..."}`                              | the saved confession                                                                                                                                 |
+| `GET /confessions`               | yes  | none                                              | the user's confessions                                                                                                                               |
+| `DELETE /confessions/<id>`       | yes  | none                                              | `{"ok": true}` if the user owns it                                                                                                                   |
+| `GET /messages`                  | yes  | none                                              | the user's messages                                                                                                                                  |
+| `POST /messages`                 | yes  | `{"content": "..."}`                              | the saved message                                                                                                                                    |
+| `POST /analyze_chat`             | yes  | none                                              | the same shape, chosen from the whole history; any crisis message wins                                                                               |
+| `GET /checkins?today=YYYY-MM-DD` | yes  | none                                              | `{"streak": 0, "checkins": [...]}`                                                                                                                   |
+| `POST /checkins`                 | yes  | `{"local_date": "YYYY-MM-DD", "activity": "..."}` | the saved check-in                                                                                                                                   |

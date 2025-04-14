@@ -4,9 +4,16 @@ import { useEffect, useState } from 'react';
 import { MeshGradientView } from 'expo-mesh-gradient';
 import { api, authHeaders } from '~/utils/api';
 
-interface StreakData {
+interface Checkin {
+  id: number;
+  local_date: string;
+  activity: string;
+  created_at: string;
+}
+
+interface CheckinsResponse {
   streak: number;
-  last_completion_date: string | null;
+  checkins: Checkin[];
 }
 
 const points: [number, number][] = [
@@ -55,92 +62,91 @@ function formatLocalDate(date: Date) {
   return `${year}-${month}-${day}`;
 }
 
-function addDays(dateString: string, days: number) {
+function formatDisplayDate(dateString: string) {
   const [year, month, day] = dateString.split('-').map(Number);
-  const date = new Date(year, month - 1, day);
-  date.setDate(date.getDate() + days);
-  return formatLocalDate(date);
+  return new Date(year, month - 1, day).toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+  });
 }
 
 export default function Activity() {
   const [dailyActivity, setDailyActivity] = useState<string>('');
   const [streak, setStreak] = useState<number>(0);
+  const [checkins, setCheckins] = useState<Checkin[]>([]);
   const [isActivityCompleted, setIsActivityCompleted] = useState<boolean>(false);
-  const [lastCompletionDate, setLastCompletionDate] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const getCurrentDate = () => formatLocalDate(new Date());
 
-  const loadStreakData = async () => {
-    const response = await api.get<StreakData>('/streak', undefined, {
-      headers: await authHeaders(),
-    });
+  const loadCheckins = async () => {
+    try {
+      const today = getCurrentDate();
+      const response = await api.get<CheckinsResponse>(`/checkins?today=${today}`, undefined, {
+        headers: await authHeaders(),
+      });
 
-    if (!response.ok || !response.data) {
-      setError('Failed to load your streak.');
-      return;
-    }
+      if (!response.ok || !response.data) {
+        setError('Failed to load your check-ins.');
+        return;
+      }
 
-    const { streak: storedStreak, last_completion_date: storedDate } = response.data;
-    const today = getCurrentDate();
-    const yesterdayStr = addDays(today, -1);
-
-    setLastCompletionDate(storedDate);
-    setStreak(storedDate === today || storedDate === yesterdayStr ? storedStreak : 0);
-    setIsActivityCompleted(storedDate === today);
-    setError(null);
-  };
-
-  const saveStreakData = async (newStreak: number, completionDate: string) => {
-    const response = await api.put(
-      '/streak',
-      { streak: newStreak, last_completion_date: completionDate },
-      { headers: await authHeaders() }
-    );
-
-    if (!response.ok) {
-      Alert.alert('Error', 'Failed to save your streak. Please try again.');
+      setStreak(response.data.streak);
+      setCheckins(response.data.checkins);
+      setIsActivityCompleted(
+        response.data.checkins.some((checkin) => checkin.local_date === today)
+      );
+      setError(null);
+    } catch (err) {
+      console.error('Failed to load check-ins', err);
+      setError('Failed to load your check-ins.');
     }
   };
 
   const setDailyActivityForToday = () => {
     const today = new Date();
     const dayOfYear = Math.floor(
-      (today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) / 1000 / 60 / 60 / 24
+      (Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()) -
+        Date.UTC(today.getFullYear(), 0, 0)) /
+        86400000
     );
     const index = dayOfYear % mentalHealthActivities.length;
     setDailyActivity(mentalHealthActivities[index]);
   };
 
   const handleActivityComplete = async () => {
-    const today = getCurrentDate();
     if (isActivityCompleted) {
       Alert.alert('Nice!', 'You’ve already completed today’s activity.');
       return;
     }
 
-    const yesterdayStr = addDays(today, -1);
+    setIsSaving(true);
+    try {
+      const response = await api.post(
+        '/checkins',
+        { local_date: getCurrentDate(), activity: dailyActivity },
+        { headers: await authHeaders() }
+      );
 
-    let newStreak = streak;
-    if (lastCompletionDate === yesterdayStr) {
-      newStreak += 1;
-    } else if (lastCompletionDate !== today) {
-      newStreak = 1;
+      if (!response.ok) {
+        Alert.alert('Error', 'Failed to save your check-in. Please try again.');
+        return;
+      }
+
+      await loadCheckins();
+      Alert.alert('Well Done!', 'You completed today’s activity.');
+    } catch (err) {
+      console.error('Failed to save check-in', err);
+      Alert.alert('Error', 'Failed to save your check-in. Please try again.');
+    } finally {
+      setIsSaving(false);
     }
-
-    setStreak(newStreak);
-    setIsActivityCompleted(true);
-    setLastCompletionDate(today);
-    await saveStreakData(newStreak, today);
-    Alert.alert(
-      'Well Done!',
-      `You completed today’s activity! Streak: ${newStreak} day${newStreak === 1 ? '' : 's'}`
-    );
   };
 
   useEffect(() => {
     setDailyActivityForToday();
-    loadStreakData();
+    loadCheckins();
   }, []);
 
   const backgroundColor = Platform.OS === 'android' ? '#A7F3D0' : 'transparent';
@@ -171,17 +177,31 @@ export default function Activity() {
             </Text>
             <Pressable
               className={`self-center rounded-lg px-4 py-2 shadow-md ${
-                isActivityCompleted ? 'bg-gray-600' : 'bg-green-600'
+                isActivityCompleted || isSaving ? 'bg-gray-600' : 'bg-green-600'
               }`}
               onPress={handleActivityComplete}
-              disabled={isActivityCompleted}>
+              disabled={isActivityCompleted || isSaving}>
               <Text className="text-base font-semibold text-white">
-                {isActivityCompleted ? 'Completed!' : 'Mark as Done'}
+                {isSaving ? 'Saving...' : isActivityCompleted ? 'Completed!' : 'Mark as Done'}
               </Text>
             </Pressable>
             <Text className="mt-3 text-center text-base text-white">
               Streak: {streak} day{streak === 1 ? '' : 's'}
             </Text>
+
+            {checkins.length > 0 && (
+              <View className="mt-4">
+                <Text className="mb-2 text-base font-semibold text-white">Recent check-ins</Text>
+                {checkins.slice(0, 7).map((checkin) => (
+                  <View key={checkin.id} className="mb-2 rounded-lg bg-gray-700 p-2">
+                    <Text className="text-sm font-medium text-gray-300">
+                      {formatDisplayDate(checkin.local_date)}
+                    </Text>
+                    <Text className="mt-1 text-sm text-white">{checkin.activity}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
           </View>
 
           {error && <Text className="mt-4 text-center text-base text-red-400">{error}</Text>}
