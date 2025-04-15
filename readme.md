@@ -77,7 +77,7 @@ it is fetched at runtime and not stored here.
 - home: record a clip or type a thought. the mic is requested when you tap record, and recordings stop at 2 minutes. the backend transcribes the audio, then checks it for explicit crisis language. a match shows a support card and real crisis resources. a Get help button in the header shows the Indian helplines at any time. the model only adds a gentle message. the confession form is private to your account.
 - activity: one daily activity, a server-computed streak, and recent check-ins, stored in `app.db`.
 - chat: your messages, stored in `app.db`, with an option to check in on the history. one explicit crisis message wins; benign messages do not average it away.
-- profile: your private journal. read or delete saved confessions.
+- profile: your private journal. read or delete saved confessions, export your data, or delete your account.
 
 ## backend routes
 
@@ -89,6 +89,8 @@ authenticated routes need `Authorization: Bearer <token>`.
 | `POST /auth/login`               | no   | `{"username": "...", "password": "..."}`          | `{"token": "..."}`                                                                                                                                   |
 | `POST /auth/logout`              | yes  | none                                              | `{"ok": true}`                                                                                                                                       |
 | `GET /auth/me`                   | yes  | none                                              | `{"id": 1, "username": "..."}`                                                                                                                       |
+| `GET /account/export`            | yes  | none                                              | the user, confessions, messages, and check-ins                                                                                                       |
+| `DELETE /account`                | yes  | none                                              | `{"ok": true}` and deletes the account                                                                                                               |
 | `GET /resources`                 | no   | none                                              | `{"resources": [...], "emergency": "112"}`                                                                                                           |
 | `POST /transcribe`               | yes  | multipart `file`                                  | `{"text": "..."}`                                                                                                                                    |
 | `POST /predict_text`             | yes  | `{"text": "..."}`                                 | `{"level": "crisis\|support\|none", "crisis": true, "about_self": true, "matched": [...], "message": "...", "resources": [...], "emergency": "112"}` |
@@ -100,3 +102,5 @@ authenticated routes need `Authorization: Bearer <token>`.
 | `POST /analyze_chat`             | yes  | none                                              | the same shape, chosen from the whole history; any crisis message wins                                                                               |
 | `GET /checkins?today=YYYY-MM-DD` | yes  | none                                              | `{"streak": 0, "checkins": [...]}`                                                                                                                   |
 | `POST /checkins`                 | yes  | `{"local_date": "YYYY-MM-DD", "activity": "..."}` | the saved check-in                                                                                                                                   |
+
+deleting an account removes its sessions, confessions, messages, and check-ins.

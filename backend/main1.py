@@ -271,6 +271,31 @@ def me():
     ).fetchone()
     return jsonify(dict(user))
 
+@app.route('/account/export', methods=['GET'])
+@require_auth
+def export_account():
+    db = get_db()
+    user = db.execute(
+        'SELECT id, username, created_at FROM users WHERE id = ?', (g.user_id,)
+    ).fetchone()
+    queries = {
+        'confessions': 'SELECT id, content, created_at FROM confessions WHERE user_id = ? ORDER BY id',
+        'messages': 'SELECT id, content, created_at FROM chat_messages WHERE user_id = ? ORDER BY id',
+        'checkins': 'SELECT id, local_date, activity, created_at FROM checkins WHERE user_id = ? ORDER BY id',
+    }
+    export = {'user': dict(user)}
+    for name, query in queries.items():
+        export[name] = [dict(row) for row in db.execute(query, (g.user_id,)).fetchall()]
+    return jsonify(export)
+
+@app.route('/account', methods=['DELETE'])
+@require_auth
+def delete_account():
+    db = get_db()
+    db.execute('DELETE FROM users WHERE id = ?', (g.user_id,))
+    db.commit()
+    return jsonify({'ok': True})
+
 @app.route('/resources', methods=['GET'])
 def get_resources():
     items, emergency = crisis_resources()

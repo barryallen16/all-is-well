@@ -1,4 +1,4 @@
-import { View, Text, Pressable, Alert, ScrollView } from 'react-native';
+import { View, Text, Pressable, Alert, ScrollView, Share } from 'react-native';
 import React, { useCallback, useState } from 'react';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { api, authHeaders, clearToken } from '~/utils/api';
@@ -70,6 +70,54 @@ const Profile = () => {
     router.replace('/auth');
   };
 
+  const handleExport = async () => {
+    try {
+      const response = await api.get('/account/export', undefined, {
+        headers: await authHeaders(),
+      });
+      if (!response.ok || !response.data) {
+        Alert.alert('Error', 'Failed to export your data.');
+        return;
+      }
+      await Share.share({
+        title: 'My All Is Well data',
+        message: JSON.stringify(response.data, null, 2),
+      });
+    } catch (err) {
+      console.error('Failed to export account', err);
+      Alert.alert('Error', 'Failed to export your data.');
+    }
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Delete your account?',
+      'This permanently deletes your journal, messages, and check-ins.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const response = await api.delete('/account', undefined, {
+                headers: await authHeaders(),
+              });
+              if (!response.ok) {
+                throw new Error('Delete failed');
+              }
+              await clearToken();
+              router.replace('/auth');
+            } catch (err) {
+              console.error('Failed to delete account', err);
+              Alert.alert('Error', 'Failed to delete your account.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const formatDate = (value: string) =>
     new Date(value).toLocaleDateString(undefined, {
       month: 'short',
@@ -102,6 +150,23 @@ const Profile = () => {
             </Pressable>
           </View>
         ))}
+
+        <View className="mb-4 mt-6 rounded-lg bg-gray-800 p-4">
+          <Text className="mb-2 text-lg font-semibold text-white">Your data</Text>
+          <Text className="mb-3 text-sm text-gray-400">
+            Export a copy or delete everything stored for your account.
+          </Text>
+          <Pressable
+            className="mb-2 self-start rounded-lg bg-blue-600 px-4 py-2"
+            onPress={handleExport}>
+            <Text className="text-base font-semibold text-white">Export my data</Text>
+          </Pressable>
+          <Pressable
+            className="self-start rounded-lg border border-red-500 px-4 py-2"
+            onPress={handleDeleteAccount}>
+            <Text className="text-base font-semibold text-red-400">Delete my account</Text>
+          </Pressable>
+        </View>
 
         <Pressable
           className="mb-4 mt-6 self-center rounded-lg bg-red-600 px-6 py-3 shadow-md"

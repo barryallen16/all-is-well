@@ -55,6 +55,8 @@ class ApiTest(unittest.TestCase):
         self.assertEqual(self.client.get('/confessions').status_code, 401)
         self.assertEqual(self.client.delete('/confessions/1').status_code, 401)
         self.assertEqual(self.client.get('/checkins').status_code, 401)
+        self.assertEqual(self.client.get('/account/export').status_code, 401)
+        self.assertEqual(self.client.delete('/account').status_code, 401)
         self.assertEqual(
             self.client.post('/predict_text', json={'text': 'hello'}).status_code, 401
         )
@@ -171,6 +173,34 @@ class ApiTest(unittest.TestCase):
             headers=headers,
         )
         self.assertEqual(future.status_code, 400)
+
+    def test_account_export_and_delete(self):
+        headers = self.signup('ivan')
+        self.client.post('/confessions', json={'content': 'secret'}, headers=headers)
+        self.client.post('/messages', json={'content': 'hello'}, headers=headers)
+        today = date.today().isoformat()
+        self.client.post(
+            '/checkins',
+            json={'local_date': today, 'activity': 'walk'},
+            headers=headers,
+        )
+
+        exported = self.client.get('/account/export', headers=headers)
+        self.assertEqual(exported.status_code, 200)
+        body = exported.get_json()
+        self.assertEqual(body['user']['username'], 'ivan')
+        self.assertNotIn('password_hash', body['user'])
+        self.assertEqual(body['confessions'][0]['content'], 'secret')
+        self.assertEqual(body['messages'][0]['content'], 'hello')
+        self.assertEqual(body['checkins'][0]['activity'], 'walk')
+
+        deleted = self.client.delete('/account', headers=headers)
+        self.assertEqual(deleted.status_code, 200)
+        self.assertEqual(self.client.get('/auth/me', headers=headers).status_code, 401)
+        login = self.client.post(
+            '/auth/login', json={'username': 'ivan', 'password': 'secret123'}
+        )
+        self.assertEqual(login.status_code, 401)
 
     def test_current_streak(self):
         today = date(2025, 10, 21)
