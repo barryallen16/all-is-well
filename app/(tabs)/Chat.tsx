@@ -6,6 +6,7 @@ import {
   ScrollView,
   TextInput,
   Alert,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEffect, useState } from 'react';
@@ -30,6 +31,12 @@ interface CrisisResource {
   contact: string;
 }
 
+interface Evidence {
+  id: number;
+  content: string;
+  created_at: string;
+}
+
 interface AnalysisResult {
   level: 'crisis' | 'support' | 'none';
   crisis: boolean;
@@ -38,6 +45,7 @@ interface AnalysisResult {
   message: string;
   resources: CrisisResource[];
   emergency: string | null;
+  evidence: Evidence[];
 }
 
 export default function Chat() {
@@ -45,6 +53,7 @@ export default function Chat() {
   const [newMessage, setNewMessage] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -89,37 +98,25 @@ export default function Chat() {
 
   const analyzeMentalHealth = async () => {
     setIsProcessing(true);
-    const response = await api.post<AnalysisResult>(
-      '/analyze_chat',
-      {},
-      { headers: await authHeaders() }
-    );
+    try {
+      const response = await api.post<AnalysisResult>(
+        '/analyze_chat',
+        {},
+        { headers: await authHeaders() }
+      );
 
-    if (response.ok && response.data) {
-      const result = response.data;
-      const evidence = result.matched.map((match) => `- "${match.phrase}"`).join('\n');
-      const resources = result.resources
-        .map((resource) => `${resource.name}: ${resource.contact}`)
-        .join('\n');
-      const sections = [result.message];
-
-      if (evidence) {
-        sections.push(`What we noticed:\n${evidence}`);
+      if (response.ok && response.data) {
+        setAnalysis(response.data);
+        setError(null);
+      } else {
+        setError('Failed to analyze chat.');
       }
-      if (resources) {
-        sections.push(`Where to get help:\n${resources}\nThese helplines are for India.`);
-        sections.push(
-          `If you or someone else is in immediate danger, call ${
-            result.emergency ?? 'your local emergency number'
-          }.`
-        );
-      }
-
-      Alert.alert(result.crisis ? 'Support now' : 'Check-in', sections.join('\n\n'));
-    } else {
+    } catch (err) {
+      console.error('Failed to analyze chat', err);
       setError('Failed to analyze chat.');
+    } finally {
+      setIsProcessing(false);
     }
-    setIsProcessing(false);
   };
 
   return (
@@ -176,6 +173,75 @@ export default function Chat() {
           {error && <Text className="mt-4 text-center text-base text-red-400">{error}</Text>}
         </View>
       </ScrollView>
+
+      <Modal
+        visible={analysis !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setAnalysis(null)}>
+        <View
+          className="flex-1 items-center justify-center p-6"
+          style={{ backgroundColor: 'rgba(0, 0, 0, 0.7)' }}>
+          {analysis && (
+            <View className="w-full rounded-xl bg-gray-800 p-5" style={{ maxHeight: '85%' }}>
+              <ScrollView style={{ flexShrink: 1 }} showsVerticalScrollIndicator={false}>
+                <Text className="text-xl font-bold text-white">
+                  {analysis.crisis ? 'Support now' : 'Check-in'}
+                </Text>
+                <Text className="mt-2 text-base text-gray-200">{analysis.message}</Text>
+
+                {analysis.evidence.length > 0 && (
+                  <View className="mt-4">
+                    <Text className="text-base font-semibold text-white">From your message</Text>
+                    {analysis.evidence.map((item) => (
+                      <Text key={item.id} className="mt-1 text-sm text-gray-300">
+                        "{item.content}"
+                      </Text>
+                    ))}
+                  </View>
+                )}
+
+                {analysis.matched.length > 0 && (
+                  <View className="mt-4">
+                    <Text className="text-base font-semibold text-white">What we noticed</Text>
+                    {analysis.matched.map((match) => (
+                      <Text
+                        key={`${match.phrase}-${match.kind}`}
+                        className="mt-1 text-sm text-gray-300">
+                        - "{match.phrase}"
+                      </Text>
+                    ))}
+                  </View>
+                )}
+
+                {analysis.resources.length > 0 && (
+                  <View className="mt-4">
+                    <Text className="text-base font-semibold text-white">Where to get help</Text>
+                    <Text className="mt-1 text-sm text-gray-300">
+                      These helplines are for India.
+                    </Text>
+                    {analysis.resources.map((resource) => (
+                      <Text key={resource.name} className="mt-1 text-sm text-gray-200">
+                        <Text className="font-semibold">{resource.name}:</Text> {resource.contact}
+                      </Text>
+                    ))}
+                    <Text className="mt-2 text-sm text-gray-300">
+                      If you or someone else is in immediate danger, call{' '}
+                      {analysis.emergency ?? '112'}.
+                    </Text>
+                  </View>
+                )}
+              </ScrollView>
+
+              <Pressable
+                className="mt-4 self-center rounded-lg bg-gray-600 px-5 py-2"
+                onPress={() => setAnalysis(null)}>
+                <Text className="text-base font-semibold text-white">Close</Text>
+              </Pressable>
+            </View>
+          )}
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }

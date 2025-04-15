@@ -76,7 +76,7 @@ it is fetched at runtime and not stored here.
 
 - home: record a clip or type a thought. the mic is requested when you tap record, and recordings stop at 2 minutes. the backend transcribes the audio, then checks it for explicit crisis language. a match shows a support card and real crisis resources. a Get help button in the header shows the Indian helplines at any time. the model only adds a gentle message. the confession form is private to your account.
 - activity: one daily activity, a server-computed streak, and recent check-ins, stored in `app.db`.
-- chat: your messages, stored in `app.db`, with an option to check in on the history. one explicit crisis message wins; benign messages do not average it away.
+- chat: your messages, stored in `app.db`, with an option to check in on the history. one explicit crisis message wins; benign messages do not average it away. the support card shows the message that triggered it.
 - profile: your private journal. read or delete saved confessions, export your data, or delete your account.
 
 ## backend routes
@@ -99,7 +99,7 @@ authenticated routes need `Authorization: Bearer <token>`.
 | `DELETE /confessions/<id>`       | yes  | none                                              | `{"ok": true}` if the user owns it                                                                                                                   |
 | `GET /messages`                  | yes  | none                                              | the user's messages                                                                                                                                  |
 | `POST /messages`                 | yes  | `{"content": "..."}`                              | the saved message                                                                                                                                    |
-| `POST /analyze_chat`             | yes  | none                                              | the same shape, chosen from the whole history; any crisis message wins                                                                               |
+| `POST /analyze_chat`             | yes  | none                                              | the same shape with evidence for the winning message; any crisis message wins                                                                        |
 | `GET /checkins?today=YYYY-MM-DD` | yes  | none                                              | `{"streak": 0, "checkins": [...]}`                                                                                                                   |
 | `POST /checkins`                 | yes  | `{"local_date": "YYYY-MM-DD", "activity": "..."}` | the saved check-in                                                                                                                                   |
 

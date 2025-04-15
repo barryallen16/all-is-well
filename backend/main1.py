@@ -90,6 +90,7 @@ def _result(level, crisis, about_self, matches, message):
         'message': message,
         'resources': resources,
         'emergency': emergency,
+        'evidence': [],
     }
 
 
@@ -114,13 +115,32 @@ def analyze_messages(messages):
     if not messages:
         return _result('none', False, True, [], 'No messages to analyze yet.')
 
-    results = [analyze(message) for message in messages]
-    chosen = next((result for result in results if result['crisis']), None)
+    results = [(message, analyze(message['content'])) for message in messages]
+    chosen = next(
+        ((message, result) for message, result in results if result['crisis']),
+        None,
+    )
     if chosen is None:
-        chosen = next((result for result in results if result['level'] == 'support'), None)
+        chosen = next(
+            (
+                (message, result)
+                for message, result in results
+                if result['level'] == 'support'
+            ),
+            None,
+        )
     if chosen is None:
         return _result('none', False, True, [], NEUTRAL_MESSAGE)
-    return chosen
+
+    message, result = chosen
+    result['evidence'] = [
+        {
+            'id': message['id'],
+            'content': message['content'],
+            'created_at': message['created_at'],
+        }
+    ]
+    return result
 
 
 def current_streak(checkin_dates, today):
@@ -437,11 +457,11 @@ def create_message():
 @require_auth
 def analyze_chat():
     rows = get_db().execute(
-        '''SELECT content FROM chat_messages WHERE user_id = ?
+        '''SELECT id, content, created_at FROM chat_messages WHERE user_id = ?
            ORDER BY created_at DESC, id DESC''',
         (g.user_id,),
     ).fetchall()
-    return jsonify(analyze_messages([row['content'] for row in rows]))
+    return jsonify(analyze_messages([dict(row) for row in rows]))
 
 @app.route('/checkins', methods=['GET'])
 @require_auth

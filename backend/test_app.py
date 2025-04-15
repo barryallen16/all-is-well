@@ -330,6 +330,7 @@ class ApiTest(unittest.TestCase):
         self.assertEqual(body['level'], 'crisis')
         self.assertTrue(body['crisis'])
         self.assertEqual(body['matched'][0]['phrase'], 'kill myself')
+        self.assertEqual(body['evidence'][0]['content'], 'i want to kill myself')
         self.assertEqual(body['emergency'], '112')
         self.assertTrue(
             any('14416' in item['contact'] for item in body['resources'])
@@ -341,6 +342,7 @@ class ApiTest(unittest.TestCase):
         self.assertEqual(body['level'], 'none')
         self.assertFalse(body['crisis'])
         self.assertEqual(body['matched'], [])
+        self.assertEqual(body['evidence'], [])
 
     def test_transcribe_needs_a_file(self):
         headers = self.signup(self.username)
