@@ -104,3 +104,4 @@ authenticated routes need `Authorization: Bearer <token>`.
 | `POST /checkins`                 | yes  | `{"local_date": "YYYY-MM-DD", "activity": "..."}` | the saved check-in                                                                                                                                   |
 
 deleting an account removes its sessions, confessions, messages, and check-ins.
+sessions expire after 30 days; the app clears the token and returns to sign-in on a 401.

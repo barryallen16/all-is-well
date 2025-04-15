@@ -1,7 +1,7 @@
 from flask import Flask, g, jsonify, request
 from flask_cors import CORS
 from faster_whisper import WhisperModel
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from functools import wraps
 import joblib
 import os
@@ -19,6 +19,17 @@ CORS(app)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.environ.get('APP_DB_PATH', os.path.join(BASE_DIR, 'app.db'))
+SESSION_TTL = timedelta(days=30)
+
+
+def session_expired(created_at):
+    try:
+        created = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
+    except (AttributeError, ValueError):
+        return True
+    if created.tzinfo is None:
+        created = created.replace(tzinfo=timezone.utc)
+    return datetime.now(timezone.utc) - created > SESSION_TTL
 
 # Load text model
 try:
@@ -208,13 +219,19 @@ def require_auth(view):
     def wrapper(*args, **kwargs):
         header = request.headers.get('Authorization', '')
         token = header.removeprefix('Bearer ').strip()
-        row = None
-        if token:
-            row = get_db().execute(
-                'SELECT user_id FROM sessions WHERE token = ?', (token,)
-            ).fetchone()
+        if not token:
+            return jsonify({'error': 'Unauthorized'}), 401
+
+        db = get_db()
+        row = db.execute(
+            'SELECT user_id, created_at FROM sessions WHERE token = ?', (token,)
+        ).fetchone()
         if row is None:
             return jsonify({'error': 'Unauthorized'}), 401
+        if session_expired(row['created_at']):
+            db.execute('DELETE FROM sessions WHERE token = ?', (token,))
+            db.commit()
+            return jsonify({'error': 'Session expired'}), 401
         g.user_id = row['user_id']
         g.token = token
         return view(*args, **kwargs)

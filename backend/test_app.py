@@ -1,5 +1,6 @@
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 import os
+import sqlite3
 import tempfile
 import unittest
 
@@ -201,6 +202,38 @@ class ApiTest(unittest.TestCase):
             '/auth/login', json={'username': 'ivan', 'password': 'secret123'}
         )
         self.assertEqual(login.status_code, 401)
+
+    def test_session_expired_helper(self):
+        now = datetime.now(timezone.utc)
+        self.assertFalse(main1.session_expired(now.isoformat()))
+        self.assertTrue(
+            main1.session_expired((now - timedelta(days=31)).isoformat())
+        )
+        self.assertTrue(main1.session_expired('not a date'))
+
+    def test_expired_session_is_rejected(self):
+        headers = self.signup('judy')
+        token = headers['Authorization'].removeprefix('Bearer ')
+        old = (datetime.now(timezone.utc) - timedelta(days=31)).strftime(
+            '%Y-%m-%dT%H:%M:%fZ'
+        )
+        db = sqlite3.connect(os.environ['APP_DB_PATH'])
+        db.execute(
+            'UPDATE sessions SET created_at = ? WHERE token = ?', (old, token)
+        )
+        db.commit()
+        db.close()
+
+        response = self.client.get('/auth/me', headers=headers)
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.get_json()['error'], 'Session expired')
+
+        db = sqlite3.connect(os.environ['APP_DB_PATH'])
+        row = db.execute(
+            'SELECT 1 FROM sessions WHERE token = ?', (token,)
+        ).fetchone()
+        db.close()
+        self.assertIsNone(row)
 
     def test_current_streak(self):
         today = date(2025, 10, 21)

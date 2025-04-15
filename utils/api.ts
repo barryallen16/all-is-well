@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'apisauce';
+import { router } from 'expo-router';
 
 const TOKEN_KEY = 'auth_token';
 
@@ -17,3 +18,13 @@ export const authHeaders = async (): Promise<Record<string, string>> => {
   const token = await getToken();
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
+
+api.addResponseTransform((response) => {
+  if (response.status === 401) {
+    void clearToken();
+    if (!response.config?.url?.includes('/auth/')) {
+      router.replace('/auth');
+    }
+  }
+  return response;
+});
