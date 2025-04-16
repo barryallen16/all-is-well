@@ -72,6 +72,11 @@ uv run python eval_real.py    # 1170 real posts, needs internet
 the real-world set is `av9ash/CSSR-S_labelled_suicidewatch_posts_reddit` (CC BY 4.0), used only for evaluation.
 it is fetched at runtime and not stored here.
 
+## first run
+
+the app shows a consent screen before sign-in.
+it explains that the app is not a crisis service, lists the Indian helplines, and says data can be exported or deleted in Profile.
+
 ## what each tab does
 
 - home: record a clip or type a thought. the mic is requested when you tap record, and recordings stop at 2 minutes. the backend transcribes the audio, then checks it for explicit crisis language. a match shows a support card and real crisis resources. a Get help button in the header shows the Indian helplines at any time. the model only adds a gentle message. the confession form is private to your account.
