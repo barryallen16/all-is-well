@@ -64,6 +64,7 @@ export default function Auth() {
           value={username}
           onChangeText={setUsername}
           autoCapitalize="none"
+          maxLength={50}
         />
         <TextInput
           className="mb-6 rounded-lg bg-gray-800 p-3 text-lg text-white"
@@ -73,6 +74,7 @@ export default function Auth() {
           onChangeText={setPassword}
           secureTextEntry
           autoCapitalize="none"
+          maxLength={128}
         />
 
         {isLoading ? (

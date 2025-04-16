@@ -477,6 +477,7 @@ export default function Home() {
                   value={inputText}
                   onChangeText={setInputText}
                   multiline
+                  maxLength={5000}
                 />
                 <Pressable
                   className="mt-3 self-center rounded-lg bg-blue-600 px-6 py-3 shadow-md"

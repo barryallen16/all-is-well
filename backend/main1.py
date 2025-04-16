@@ -16,6 +16,12 @@ from resources import crisis_resources
 # Initialize Flask app
 app = Flask(__name__)
 CORS(app)
+app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024
+
+
+@app.errorhandler(413)
+def request_too_large(error):
+    return jsonify({'error': 'Request is too large'}), 413
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.environ.get('APP_DB_PATH', os.path.join(BASE_DIR, 'app.db'))
@@ -265,6 +271,10 @@ def signup():
     password = data.get('password') or ''
     if not username or not password:
         return jsonify({'error': 'Username and password are required'}), 400
+    if len(username) > 50:
+        return jsonify({'error': 'Username must be 50 characters or less'}), 400
+    if len(password) > 128:
+        return jsonify({'error': 'Password must be 128 characters or less'}), 400
 
     db = get_db()
     try:
@@ -283,6 +293,8 @@ def login():
     data = request.get_json(silent=True) or {}
     username = (data.get('username') or '').strip()
     password = data.get('password') or ''
+    if len(username) > 50 or len(password) > 128:
+        return jsonify({'error': 'Invalid username or password'}), 401
 
     user = get_db().execute(
         'SELECT id, password_hash FROM users WHERE username = ?', (username,)
@@ -345,6 +357,8 @@ def predict_text():
     text = (data.get('text') or '').strip()
     if not text:
         return jsonify({'error': 'No text provided'}), 400
+    if len(text) > 5000:
+        return jsonify({'error': 'Text must be 5,000 characters or less'}), 400
 
     try:
         return jsonify(analyze(text))
@@ -440,6 +454,8 @@ def create_message():
     content = (data.get('content') or '').strip()
     if not content:
         return jsonify({'error': 'Content is required'}), 400
+    if len(content) > 2000:
+        return jsonify({'error': 'Message must be 2,000 characters or less'}), 400
 
     db = get_db()
     cursor = db.execute(

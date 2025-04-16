@@ -161,6 +161,7 @@ export default function Chat() {
               placeholderTextColor="#A0A0A0"
               value={newMessage}
               onChangeText={setNewMessage}
+              maxLength={2000}
             />
             <Pressable
               className="rounded-lg bg-blue-600 px-4 py-3"

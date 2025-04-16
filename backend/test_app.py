@@ -51,6 +51,43 @@ class ApiTest(unittest.TestCase):
         self.assertEqual(login.status_code, 200)
         self.assertIn('token', login.get_json())
 
+    def test_signup_length_limits(self):
+        long_name = self.client.post(
+            '/auth/signup',
+            json={'username': 'u' * 51, 'password': 'secret123'},
+        )
+        self.assertEqual(long_name.status_code, 400)
+        long_password = self.client.post(
+            '/auth/signup',
+            json={'username': 'longpass', 'password': 'p' * 129},
+        )
+        self.assertEqual(long_password.status_code, 400)
+
+    def test_input_length_limits(self):
+        headers = self.signup('kate')
+        long_text = self.client.post(
+            '/predict_text', json={'text': 'a' * 5001}, headers=headers
+        )
+        self.assertEqual(long_text.status_code, 400)
+        long_message = self.client.post(
+            '/messages', json={'content': 'a' * 2001}, headers=headers
+        )
+        self.assertEqual(long_message.status_code, 400)
+
+    def test_request_size_limit(self):
+        original = main1.app.config['MAX_CONTENT_LENGTH']
+        main1.app.config['MAX_CONTENT_LENGTH'] = 1024
+        try:
+            response = self.client.post(
+                '/auth/login',
+                data='x' * 2048,
+                content_type='application/json',
+            )
+            self.assertEqual(response.status_code, 413)
+            self.assertEqual(response.get_json()['error'], 'Request is too large')
+        finally:
+            main1.app.config['MAX_CONTENT_LENGTH'] = original
+
     def test_protected_routes_need_a_token(self):
         self.assertEqual(self.client.get('/messages').status_code, 401)
         self.assertEqual(self.client.get('/confessions').status_code, 401)
