@@ -110,5 +110,5 @@ authenticated routes need `Authorization: Bearer <token>`.
 
 deleting an account removes its sessions, confessions, messages, and check-ins.
 sessions expire after 30 days; the app clears the token and returns to sign-in on a 401.
-text is capped at 5,000 characters, chat messages at 2,000, confessions at 500, check-in activities at 200, usernames at 50, and passwords at 128.
+text is capped at 5,000 characters, chat messages at 2,000, confessions at 500, check-in activities at 200, usernames at 50, and passwords at 8 to 128 characters.
 uploads are capped at 5 MB.

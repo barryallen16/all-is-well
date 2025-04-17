@@ -68,7 +68,7 @@ export default function Auth() {
         />
         <TextInput
           className="mb-6 rounded-lg bg-gray-800 p-3 text-lg text-white"
-          placeholder="Password"
+          placeholder="Password (8+ characters)"
           placeholderTextColor="#A0A0A0"
           value={password}
           onChangeText={setPassword}

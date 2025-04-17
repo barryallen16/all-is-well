@@ -57,6 +57,11 @@ class ApiTest(unittest.TestCase):
             json={'username': 'u' * 51, 'password': 'secret123'},
         )
         self.assertEqual(long_name.status_code, 400)
+        short_password = self.client.post(
+            '/auth/signup',
+            json={'username': 'shortpass', 'password': 'short'},
+        )
+        self.assertEqual(short_password.status_code, 400)
         long_password = self.client.post(
             '/auth/signup',
             json={'username': 'longpass', 'password': 'p' * 129},
