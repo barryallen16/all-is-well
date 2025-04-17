@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
-import { TabBarIcon } from '../../components/TabBarIcon';
+
 export default function TabLayout() {
   return (
     <Tabs
@@ -24,22 +24,24 @@ export default function TabLayout() {
         name="Activity"
         options={{
           headerShown: false,
-          title: 'daily activities',
-          tabBarIcon: ({ color }) => <TabBarIcon name="code" color={color} />,
+          title: 'Activity',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialIcons name="check-circle" size={size} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="Chat"
         options={{
           headerShown: false,
-          title: 'Chat',
+          title: 'Check in',
           tabBarIcon: ({ color, size }) => <MaterialIcons name="chat" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'profile',
+          title: 'Profile',
           headerShown: false,
           tabBarIcon: ({ color, size }) => <MaterialIcons name="face" size={size} color={color} />,
         }}

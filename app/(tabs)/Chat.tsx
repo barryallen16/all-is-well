@@ -127,7 +127,7 @@ export default function Chat() {
         keyboardDismissMode="on-drag"
         contentContainerStyle={{ flexGrow: 1, paddingBottom: 20 }}>
         <View className="items-center border-b border-gray-700 bg-gray-900 p-5 shadow-md">
-          <Text className="text-3xl font-extrabold tracking-wide text-white">Chat</Text>
+          <Text className="text-3xl font-extrabold tracking-wide text-white">Check in</Text>
         </View>
 
         <View className="flex-1 p-4">

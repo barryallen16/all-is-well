@@ -166,7 +166,7 @@ export default function Activity() {
 
       <ScrollView className="flex-1" contentContainerStyle={{ flexGrow: 1, paddingBottom: 20 }}>
         <View className="items-center border-b border-gray-700 bg-gray-900 p-5 shadow-md">
-          <Text className="text-3xl font-extrabold tracking-wide text-white">All Is Well</Text>
+          <Text className="text-3xl font-extrabold tracking-wide text-white">Activity</Text>
         </View>
 
         <View className="flex-1 p-4">
