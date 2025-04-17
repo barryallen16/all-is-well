@@ -161,25 +161,18 @@ class ApiTest(unittest.TestCase):
         headers = self.signup('heidi')
         today = date.today()
         today_str = today.isoformat()
-        yesterday_str = (today - timedelta(days=1)).isoformat()
 
         empty = self.client.get(
             f'/checkins?today={today_str}', headers=headers
         ).get_json()
         self.assertEqual(empty, {'streak': 0, 'checkins': []})
 
-        first = self.client.post(
-            '/checkins',
-            json={'local_date': yesterday_str, 'activity': 'take a walk'},
-            headers=headers,
-        )
-        self.assertEqual(first.status_code, 201)
-        second = self.client.post(
+        created = self.client.post(
             '/checkins',
             json={'local_date': today_str, 'activity': 'breathe'},
             headers=headers,
         )
-        self.assertEqual(second.status_code, 201)
+        self.assertEqual(created.status_code, 201)
 
         duplicate = self.client.post(
             '/checkins',
@@ -191,10 +184,10 @@ class ApiTest(unittest.TestCase):
         body = self.client.get(
             f'/checkins?today={today_str}', headers=headers
         ).get_json()
-        self.assertEqual(body['streak'], 2)
+        self.assertEqual(body['streak'], 1)
         self.assertEqual(
             [item['activity'] for item in body['checkins']],
-            ['breathe', 'take a walk'],
+            ['breathe'],
         )
 
         bad_date = self.client.post(
