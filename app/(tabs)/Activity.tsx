@@ -116,6 +116,7 @@ export default function Activity() {
   };
 
   const handleActivityComplete = async () => {
+    if (!dailyActivity) return;
     if (isActivityCompleted) {
       Alert.alert('Nice!', 'You’ve already completed today’s activity.');
       return;
@@ -177,10 +178,10 @@ export default function Activity() {
             </Text>
             <Pressable
               className={`self-center rounded-lg px-4 py-2 shadow-md ${
-                isActivityCompleted || isSaving ? 'bg-gray-600' : 'bg-green-600'
+                !dailyActivity || isActivityCompleted || isSaving ? 'bg-gray-600' : 'bg-green-600'
               }`}
               onPress={handleActivityComplete}
-              disabled={isActivityCompleted || isSaving}>
+              disabled={!dailyActivity || isActivityCompleted || isSaving}>
               <Text className="text-base font-semibold text-white">
                 {isSaving ? 'Saving...' : isActivityCompleted ? 'Completed!' : 'Mark as Done'}
               </Text>
