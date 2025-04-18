@@ -21,7 +21,7 @@ export const authHeaders = async (): Promise<Record<string, string>> => {
 
 api.addResponseTransform((response) => {
   if (response.status === 401) {
-    void clearToken();
+    clearToken();
     if (!response.config?.url?.includes('/auth/')) {
       router.replace('/auth');
     }

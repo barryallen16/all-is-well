@@ -1,73 +1,528 @@
 [
-  {"text": "i had a nice lunch", "category": "benign", "explicit": false, "crisis": false, "about_self": true, "historical": false},
-  {"text": "the weather is nice", "category": "benign", "explicit": false, "crisis": false, "about_self": true, "historical": false},
-  {"text": "coffee with a friend", "category": "benign", "explicit": false, "crisis": false, "about_self": true, "historical": false},
-  {"text": "i went for a walk", "category": "benign", "explicit": false, "crisis": false, "about_self": true, "historical": false},
-  {"text": "the kids are at school", "category": "benign", "explicit": false, "crisis": false, "about_self": true, "historical": false},
-  {"text": "made dinner", "category": "benign", "explicit": false, "crisis": false, "about_self": true, "historical": false},
-  {"text": "planted some flowers", "category": "benign", "explicit": false, "crisis": false, "about_self": true, "historical": false},
-  {"text": "my flight was on time", "category": "benign", "explicit": false, "crisis": false, "about_self": true, "historical": false},
-  {"text": "shopping for groceries", "category": "benign", "explicit": false, "crisis": false, "about_self": true, "historical": false},
-  {"text": "i finished my project", "category": "benign", "explicit": false, "crisis": false, "about_self": true, "historical": false},
-  {"text": "good day at work", "category": "benign", "explicit": false, "crisis": false, "about_self": true, "historical": false},
-  {"text": "my cat is cute", "category": "benign", "explicit": false, "crisis": false, "about_self": true, "historical": false},
-  {"text": "i saw a good film", "category": "benign", "explicit": false, "crisis": false, "about_self": true, "historical": false},
-  {"text": "i slept well", "category": "benign", "explicit": false, "crisis": false, "about_self": true, "historical": false},
-  {"text": "traffic was light", "category": "benign", "explicit": false, "crisis": false, "about_self": true, "historical": false},
+  {
+    "text": "i had a nice lunch",
+    "category": "benign",
+    "explicit": false,
+    "crisis": false,
+    "about_self": true,
+    "historical": false
+  },
+  {
+    "text": "the weather is nice",
+    "category": "benign",
+    "explicit": false,
+    "crisis": false,
+    "about_self": true,
+    "historical": false
+  },
+  {
+    "text": "coffee with a friend",
+    "category": "benign",
+    "explicit": false,
+    "crisis": false,
+    "about_self": true,
+    "historical": false
+  },
+  {
+    "text": "i went for a walk",
+    "category": "benign",
+    "explicit": false,
+    "crisis": false,
+    "about_self": true,
+    "historical": false
+  },
+  {
+    "text": "the kids are at school",
+    "category": "benign",
+    "explicit": false,
+    "crisis": false,
+    "about_self": true,
+    "historical": false
+  },
+  {
+    "text": "made dinner",
+    "category": "benign",
+    "explicit": false,
+    "crisis": false,
+    "about_self": true,
+    "historical": false
+  },
+  {
+    "text": "planted some flowers",
+    "category": "benign",
+    "explicit": false,
+    "crisis": false,
+    "about_self": true,
+    "historical": false
+  },
+  {
+    "text": "my flight was on time",
+    "category": "benign",
+    "explicit": false,
+    "crisis": false,
+    "about_self": true,
+    "historical": false
+  },
+  {
+    "text": "shopping for groceries",
+    "category": "benign",
+    "explicit": false,
+    "crisis": false,
+    "about_self": true,
+    "historical": false
+  },
+  {
+    "text": "i finished my project",
+    "category": "benign",
+    "explicit": false,
+    "crisis": false,
+    "about_self": true,
+    "historical": false
+  },
+  {
+    "text": "good day at work",
+    "category": "benign",
+    "explicit": false,
+    "crisis": false,
+    "about_self": true,
+    "historical": false
+  },
+  {
+    "text": "my cat is cute",
+    "category": "benign",
+    "explicit": false,
+    "crisis": false,
+    "about_self": true,
+    "historical": false
+  },
+  {
+    "text": "i saw a good film",
+    "category": "benign",
+    "explicit": false,
+    "crisis": false,
+    "about_self": true,
+    "historical": false
+  },
+  {
+    "text": "i slept well",
+    "category": "benign",
+    "explicit": false,
+    "crisis": false,
+    "about_self": true,
+    "historical": false
+  },
+  {
+    "text": "traffic was light",
+    "category": "benign",
+    "explicit": false,
+    "crisis": false,
+    "about_self": true,
+    "historical": false
+  },
 
-  {"text": "things are okay i guess", "category": "ambiguous", "explicit": false, "crisis": false, "about_self": true, "historical": false},
-  {"text": "i dont know how i feel", "category": "ambiguous", "explicit": false, "crisis": false, "about_self": true, "historical": false},
-  {"text": "meh", "category": "ambiguous", "explicit": false, "crisis": false, "about_self": true, "historical": false},
-  {"text": "it is what it is", "category": "ambiguous", "explicit": false, "crisis": false, "about_self": true, "historical": false},
-  {"text": "i guess im fine", "category": "ambiguous", "explicit": false, "crisis": false, "about_self": true, "historical": false},
-  {"text": "long week", "category": "ambiguous", "explicit": false, "crisis": false, "about_self": true, "historical": false},
-  {"text": "i could use a break", "category": "ambiguous", "explicit": false, "crisis": false, "about_self": true, "historical": false},
-  {"text": "not sure what to say", "category": "ambiguous", "explicit": false, "crisis": false, "about_self": true, "historical": false},
+  {
+    "text": "things are okay i guess",
+    "category": "ambiguous",
+    "explicit": false,
+    "crisis": false,
+    "about_self": true,
+    "historical": false
+  },
+  {
+    "text": "i dont know how i feel",
+    "category": "ambiguous",
+    "explicit": false,
+    "crisis": false,
+    "about_self": true,
+    "historical": false
+  },
+  {
+    "text": "meh",
+    "category": "ambiguous",
+    "explicit": false,
+    "crisis": false,
+    "about_self": true,
+    "historical": false
+  },
+  {
+    "text": "it is what it is",
+    "category": "ambiguous",
+    "explicit": false,
+    "crisis": false,
+    "about_self": true,
+    "historical": false
+  },
+  {
+    "text": "i guess im fine",
+    "category": "ambiguous",
+    "explicit": false,
+    "crisis": false,
+    "about_self": true,
+    "historical": false
+  },
+  {
+    "text": "long week",
+    "category": "ambiguous",
+    "explicit": false,
+    "crisis": false,
+    "about_self": true,
+    "historical": false
+  },
+  {
+    "text": "i could use a break",
+    "category": "ambiguous",
+    "explicit": false,
+    "crisis": false,
+    "about_self": true,
+    "historical": false
+  },
+  {
+    "text": "not sure what to say",
+    "category": "ambiguous",
+    "explicit": false,
+    "crisis": false,
+    "about_self": true,
+    "historical": false
+  },
 
-  {"text": "i feel hopeless and worthless", "category": "distress", "explicit": false, "crisis": false, "about_self": true, "historical": false},
-  {"text": "i have been feeling low for weeks and dont see the point", "category": "distress", "explicit": false, "crisis": false, "about_self": true, "historical": false},
-  {"text": "i am so tired of everything", "category": "distress", "explicit": false, "crisis": false, "about_self": true, "historical": false},
-  {"text": "i hate my life", "category": "distress", "explicit": false, "crisis": false, "about_self": true, "historical": false},
-  {"text": "i feel empty inside", "category": "distress", "explicit": false, "crisis": false, "about_self": true, "historical": false},
-  {"text": "i cant stop crying", "category": "distress", "explicit": false, "crisis": false, "about_self": true, "historical": false},
-  {"text": "everything feels heavy", "category": "distress", "explicit": false, "crisis": false, "about_self": true, "historical": false},
-  {"text": "i feel like a burden", "category": "distress", "explicit": false, "crisis": false, "about_self": true, "historical": false},
-  {"text": "i am exhausted all the time", "category": "distress", "explicit": false, "crisis": false, "about_self": true, "historical": false},
-  {"text": "i feel like nothing matters anymore", "category": "distress", "explicit": false, "crisis": false, "about_self": true, "historical": false},
+  {
+    "text": "i feel hopeless and worthless",
+    "category": "distress",
+    "explicit": false,
+    "crisis": false,
+    "about_self": true,
+    "historical": false
+  },
+  {
+    "text": "i have been feeling low for weeks and dont see the point",
+    "category": "distress",
+    "explicit": false,
+    "crisis": false,
+    "about_self": true,
+    "historical": false
+  },
+  {
+    "text": "i am so tired of everything",
+    "category": "distress",
+    "explicit": false,
+    "crisis": false,
+    "about_self": true,
+    "historical": false
+  },
+  {
+    "text": "i hate my life",
+    "category": "distress",
+    "explicit": false,
+    "crisis": false,
+    "about_self": true,
+    "historical": false
+  },
+  {
+    "text": "i feel empty inside",
+    "category": "distress",
+    "explicit": false,
+    "crisis": false,
+    "about_self": true,
+    "historical": false
+  },
+  {
+    "text": "i cant stop crying",
+    "category": "distress",
+    "explicit": false,
+    "crisis": false,
+    "about_self": true,
+    "historical": false
+  },
+  {
+    "text": "everything feels heavy",
+    "category": "distress",
+    "explicit": false,
+    "crisis": false,
+    "about_self": true,
+    "historical": false
+  },
+  {
+    "text": "i feel like a burden",
+    "category": "distress",
+    "explicit": false,
+    "crisis": false,
+    "about_self": true,
+    "historical": false
+  },
+  {
+    "text": "i am exhausted all the time",
+    "category": "distress",
+    "explicit": false,
+    "crisis": false,
+    "about_self": true,
+    "historical": false
+  },
+  {
+    "text": "i feel like nothing matters anymore",
+    "category": "distress",
+    "explicit": false,
+    "crisis": false,
+    "about_self": true,
+    "historical": false
+  },
 
-  {"text": "i want to kill myself", "category": "explicit", "explicit": true, "crisis": true, "about_self": true, "historical": false},
-  {"text": "i dont want to be alive anymore", "category": "explicit", "explicit": true, "crisis": true, "about_self": true, "historical": false},
-  {"text": "nobody would miss me", "category": "explicit", "explicit": true, "crisis": true, "about_self": true, "historical": false},
-  {"text": "i keep thinking about ending my life", "category": "explicit", "explicit": true, "crisis": true, "about_self": true, "historical": false},
-  {"text": "i wish i was dead", "category": "explicit", "explicit": true, "crisis": true, "about_self": true, "historical": false},
-  {"text": "i want to die", "category": "explicit", "explicit": true, "crisis": true, "about_self": true, "historical": false},
-  {"text": "i am going to kill myself tonight", "category": "explicit", "explicit": true, "crisis": true, "about_self": true, "historical": false},
-  {"text": "i have a plan to end my life", "category": "explicit", "explicit": true, "crisis": true, "about_self": true, "historical": false},
-  {"text": "i want to take my own life", "category": "explicit", "explicit": true, "crisis": true, "about_self": true, "historical": false},
-  {"text": "i should just kill myself", "category": "explicit", "explicit": true, "crisis": true, "about_self": true, "historical": false},
-  {"text": "i want to hurt myself", "category": "explicit", "explicit": true, "crisis": true, "about_self": true, "historical": false},
-  {"text": "i have been cutting myself", "category": "explicit", "explicit": true, "crisis": true, "about_self": true, "historical": false},
-  {"text": "i want to disappear forever", "category": "explicit", "explicit": true, "crisis": true, "about_self": true, "historical": false},
-  {"text": "everyone would be better off without me", "category": "explicit", "explicit": true, "crisis": true, "about_self": true, "historical": false},
-  {"text": "i dont want to exist anymore", "category": "explicit", "explicit": true, "crisis": true, "about_self": true, "historical": false},
+  {
+    "text": "i want to kill myself",
+    "category": "explicit",
+    "explicit": true,
+    "crisis": true,
+    "about_self": true,
+    "historical": false
+  },
+  {
+    "text": "i dont want to be alive anymore",
+    "category": "explicit",
+    "explicit": true,
+    "crisis": true,
+    "about_self": true,
+    "historical": false
+  },
+  {
+    "text": "nobody would miss me",
+    "category": "explicit",
+    "explicit": true,
+    "crisis": true,
+    "about_self": true,
+    "historical": false
+  },
+  {
+    "text": "i keep thinking about ending my life",
+    "category": "explicit",
+    "explicit": true,
+    "crisis": true,
+    "about_self": true,
+    "historical": false
+  },
+  {
+    "text": "i wish i was dead",
+    "category": "explicit",
+    "explicit": true,
+    "crisis": true,
+    "about_self": true,
+    "historical": false
+  },
+  {
+    "text": "i want to die",
+    "category": "explicit",
+    "explicit": true,
+    "crisis": true,
+    "about_self": true,
+    "historical": false
+  },
+  {
+    "text": "i am going to kill myself tonight",
+    "category": "explicit",
+    "explicit": true,
+    "crisis": true,
+    "about_self": true,
+    "historical": false
+  },
+  {
+    "text": "i have a plan to end my life",
+    "category": "explicit",
+    "explicit": true,
+    "crisis": true,
+    "about_self": true,
+    "historical": false
+  },
+  {
+    "text": "i want to take my own life",
+    "category": "explicit",
+    "explicit": true,
+    "crisis": true,
+    "about_self": true,
+    "historical": false
+  },
+  {
+    "text": "i should just kill myself",
+    "category": "explicit",
+    "explicit": true,
+    "crisis": true,
+    "about_self": true,
+    "historical": false
+  },
+  {
+    "text": "i want to hurt myself",
+    "category": "explicit",
+    "explicit": true,
+    "crisis": true,
+    "about_self": true,
+    "historical": false
+  },
+  {
+    "text": "i have been cutting myself",
+    "category": "explicit",
+    "explicit": true,
+    "crisis": true,
+    "about_self": true,
+    "historical": false
+  },
+  {
+    "text": "i want to disappear forever",
+    "category": "explicit",
+    "explicit": true,
+    "crisis": true,
+    "about_self": true,
+    "historical": false
+  },
+  {
+    "text": "everyone would be better off without me",
+    "category": "explicit",
+    "explicit": true,
+    "crisis": true,
+    "about_self": true,
+    "historical": false
+  },
+  {
+    "text": "i dont want to exist anymore",
+    "category": "explicit",
+    "explicit": true,
+    "crisis": true,
+    "about_self": true,
+    "historical": false
+  },
 
-  {"text": "my friend wants to kill himself", "category": "third_party", "explicit": true, "crisis": true, "about_self": false, "historical": false},
-  {"text": "my mom said she wants to die", "category": "third_party", "explicit": true, "crisis": true, "about_self": false, "historical": false},
-  {"text": "she told me she is suicidal", "category": "third_party", "explicit": true, "crisis": true, "about_self": false, "historical": false},
-  {"text": "he keeps saying he wants to end his life", "category": "third_party", "explicit": true, "crisis": true, "about_self": false, "historical": false},
-  {"text": "my brother has a plan to kill himself", "category": "third_party", "explicit": true, "crisis": true, "about_self": false, "historical": false},
-  {"text": "someone i know is self harming", "category": "third_party", "explicit": true, "crisis": true, "about_self": false, "historical": false},
-  {"text": "my partner said she wishes she was dead", "category": "third_party", "explicit": true, "crisis": true, "about_self": false, "historical": false},
-  {"text": "my son told me he wants to die", "category": "third_party", "explicit": true, "crisis": true, "about_self": false, "historical": false},
+  {
+    "text": "my friend wants to kill himself",
+    "category": "third_party",
+    "explicit": true,
+    "crisis": true,
+    "about_self": false,
+    "historical": false
+  },
+  {
+    "text": "my mom said she wants to die",
+    "category": "third_party",
+    "explicit": true,
+    "crisis": true,
+    "about_self": false,
+    "historical": false
+  },
+  {
+    "text": "she told me she is suicidal",
+    "category": "third_party",
+    "explicit": true,
+    "crisis": true,
+    "about_self": false,
+    "historical": false
+  },
+  {
+    "text": "he keeps saying he wants to end his life",
+    "category": "third_party",
+    "explicit": true,
+    "crisis": true,
+    "about_self": false,
+    "historical": false
+  },
+  {
+    "text": "my brother has a plan to kill himself",
+    "category": "third_party",
+    "explicit": true,
+    "crisis": true,
+    "about_self": false,
+    "historical": false
+  },
+  {
+    "text": "someone i know is self harming",
+    "category": "third_party",
+    "explicit": true,
+    "crisis": true,
+    "about_self": false,
+    "historical": false
+  },
+  {
+    "text": "my partner said she wishes she was dead",
+    "category": "third_party",
+    "explicit": true,
+    "crisis": true,
+    "about_self": false,
+    "historical": false
+  },
+  {
+    "text": "my son told me he wants to die",
+    "category": "third_party",
+    "explicit": true,
+    "crisis": true,
+    "about_self": false,
+    "historical": false
+  },
 
-  {"text": "i am not suicidal", "category": "negation", "explicit": false, "crisis": false, "about_self": true, "historical": false},
-  {"text": "im not suicidal", "category": "negation", "explicit": false, "crisis": false, "about_self": true, "historical": false},
-  {"text": "i would never kill myself", "category": "negation", "explicit": false, "crisis": false, "about_self": true, "historical": false},
-  {"text": "i dont want to die", "category": "negation", "explicit": false, "crisis": false, "about_self": true, "historical": false},
-  {"text": "i no longer want to kill myself", "category": "negation", "explicit": false, "crisis": false, "about_self": true, "historical": false},
-  {"text": "i am not going to hurt myself", "category": "negation", "explicit": false, "crisis": false, "about_self": true, "historical": false},
+  {
+    "text": "i am not suicidal",
+    "category": "negation",
+    "explicit": false,
+    "crisis": false,
+    "about_self": true,
+    "historical": false
+  },
+  {
+    "text": "im not suicidal",
+    "category": "negation",
+    "explicit": false,
+    "crisis": false,
+    "about_self": true,
+    "historical": false
+  },
+  {
+    "text": "i would never kill myself",
+    "category": "negation",
+    "explicit": false,
+    "crisis": false,
+    "about_self": true,
+    "historical": false
+  },
+  {
+    "text": "i dont want to die",
+    "category": "negation",
+    "explicit": false,
+    "crisis": false,
+    "about_self": true,
+    "historical": false
+  },
+  {
+    "text": "i no longer want to kill myself",
+    "category": "negation",
+    "explicit": false,
+    "crisis": false,
+    "about_self": true,
+    "historical": false
+  },
+  {
+    "text": "i am not going to hurt myself",
+    "category": "negation",
+    "explicit": false,
+    "crisis": false,
+    "about_self": true,
+    "historical": false
+  },
 
-  {"text": "i used to cut myself", "category": "historical", "explicit": true, "crisis": false, "about_self": true, "historical": true},
-  {"text": "i used to self harm but i am doing better now", "category": "historical", "explicit": true, "crisis": false, "about_self": true, "historical": true},
-  {"text": "i attempted suicide years ago", "category": "historical", "explicit": true, "crisis": false, "about_self": true, "historical": true}
+  {
+    "text": "i used to cut myself",
+    "category": "historical",
+    "explicit": true,
+    "crisis": false,
+    "about_self": true,
+    "historical": true
+  },
+  {
+    "text": "i used to self harm but i am doing better now",
+    "category": "historical",
+    "explicit": true,
+    "crisis": false,
+    "about_self": true,
+    "historical": true
+  },
+  {
+    "text": "i attempted suicide years ago",
+    "category": "historical",
+    "explicit": true,
+    "crisis": false,
+    "about_self": true,
+    "historical": true
+  }
 ]
