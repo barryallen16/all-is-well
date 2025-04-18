@@ -1,25 +1,34 @@
+import { MaterialIcons } from '@expo/vector-icons';
+import { Audio } from 'expo-av';
+import * as FileSystem from 'expo-file-system';
+import FormData from 'form-data';
+import { ReactNode, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
   Pressable,
   Alert,
   ActivityIndicator,
-  TextInput,
   KeyboardAvoidingView,
   ScrollView,
   Platform,
   Keyboard,
-  Modal,
 } from 'react-native';
+import Animated, { Easing, FadeInDown, FadeOut } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Audio } from 'expo-av';
-import { useEffect, useRef, useState } from 'react';
-import * as FileSystem from 'expo-file-system';
-import FormData from 'form-data';
-import { MaterialIcons } from '@expo/vector-icons';
-import { MeshGradientView } from 'expo-mesh-gradient';
+
+import {
+  Button,
+  Card,
+  ErrorBanner,
+  Field,
+  GradientBackground,
+  ScreenHeader,
+  Sheet,
+  Tappable,
+  tabularNums,
+} from '~/components/ui';
 import { api, authHeaders } from '~/utils/api';
-import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 
 interface TranscriptionResponseData {
   text: string;
@@ -47,19 +56,10 @@ interface AnalysisResult {
   emergency: string | null;
 }
 
-const points: [number, number][] = [
-  [0.0, 0.0],
-  [0.5, 0.0],
-  [1.0, 0.0],
-  [0.0, 0.5],
-  [0.5, 0.5],
-  [1.0, 0.5],
-  [0.0, 1.0],
-  [0.5, 1.0],
-  [1.0, 1.0],
-];
+type IconName = keyof typeof MaterialIcons.glyphMap;
 
 const MAX_RECORDING_SECONDS = 120;
+const MAX_CONFESSION_LENGTH = 500;
 
 function formatDuration(seconds: number) {
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
@@ -115,13 +115,55 @@ const colorSets: Record<RiskLevel, ColorSet> = {
   },
 };
 
+function CollapsibleCard({
+  icon,
+  title,
+  open,
+  onToggle,
+  children,
+}: {
+  icon: IconName;
+  title: string;
+  open: boolean;
+  onToggle: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <Card padded={false} className="overflow-hidden">
+      <Pressable
+        onPress={onToggle}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: open }}
+        className="min-h-14 flex-row items-center gap-3 px-4"
+        style={({ pressed }) => ({
+          backgroundColor: pressed ? 'rgba(255,255,255,0.04)' : 'transparent',
+        })}>
+        <MaterialIcons name={icon} size={20} color="#6EE7B7" />
+        <Text className="flex-1 text-base font-semibold text-white">{title}</Text>
+        <MaterialIcons
+          name={open ? 'keyboard-arrow-up' : 'keyboard-arrow-down'}
+          size={22}
+          color="#9CA3AF"
+        />
+      </Pressable>
+      {open ? (
+        <Animated.View
+          entering={FadeInDown.duration(180).easing(Easing.out(Easing.quad))}
+          exiting={FadeOut.duration(120).easing(Easing.out(Easing.quad))}>
+          <View className="px-4 pb-4">{children}</View>
+        </Animated.View>
+      ) : null}
+    </Card>
+  );
+}
+
 export default function Home() {
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
   const [permissionResponse, requestPermission] = Audio.usePermissions();
-  const [audioUri, setAudioUri] = useState<string | null>(null);
   const [transcription, setTranscription] = useState<string | null>(null);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isSubmittingConfession, setIsSubmittingConfession] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [inputText, setInputText] = useState<string>('');
   const [confessionText, setConfessionText] = useState<string>('');
@@ -133,32 +175,8 @@ export default function Home() {
   const [helpLoading, setHelpLoading] = useState(false);
   const [helpError, setHelpError] = useState<string | null>(null);
 
-  const confessionSectionHeight = useSharedValue(0);
-  const thoughtsSectionHeight = useSharedValue(0);
   const [isConfessionSectionOpen, setIsConfessionSectionOpen] = useState(false);
   const [isThoughtsSectionOpen, setIsThoughtsSectionOpen] = useState(false);
-
-  const MAX_CONFESSION_LENGTH = 500;
-
-  const confessionSectionStyle = useAnimatedStyle(() => ({
-    height: withTiming(confessionSectionHeight.value, { duration: 300 }),
-    opacity: withTiming(confessionSectionHeight.value > 0 ? 1 : 0, { duration: 300 }),
-  }));
-
-  const thoughtsSectionStyle = useAnimatedStyle(() => ({
-    height: withTiming(thoughtsSectionHeight.value, { duration: 300 }),
-    opacity: withTiming(thoughtsSectionHeight.value > 0 ? 1 : 0, { duration: 300 }),
-  }));
-
-  const toggleConfessionSection = () => {
-    setIsConfessionSectionOpen(!isConfessionSectionOpen);
-    confessionSectionHeight.value = isConfessionSectionOpen ? 0 : 200; // Adjusted height
-  };
-
-  const toggleThoughtsSection = () => {
-    setIsThoughtsSectionOpen(!isThoughtsSectionOpen);
-    thoughtsSectionHeight.value = isThoughtsSectionOpen ? 0 : 100;
-  };
 
   useEffect(() => {
     if (!recording) {
@@ -173,7 +191,7 @@ export default function Home() {
 
   useEffect(() => {
     if (recording && recordingSeconds >= MAX_RECORDING_SECONDS) {
-      void StopRecording();
+      StopRecording().catch((err) => console.error('Failed to stop recording', err));
     }
   }, [recording, recordingSeconds]);
 
@@ -191,7 +209,6 @@ export default function Home() {
         Audio.RecordingOptionsPresets.HIGH_QUALITY
       );
       setRecording(recording);
-      setAudioUri(null);
       setTranscription(null);
       setResult(null);
       setError(null);
@@ -210,7 +227,6 @@ export default function Home() {
       await recording.stopAndUnloadAsync();
       await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
       const uri = recording.getURI();
-      setAudioUri(uri);
       console.log('Recording saved at:', uri);
       setRecording(null);
       setIsProcessing(true);
@@ -292,10 +308,6 @@ export default function Home() {
   }
 
   const handleTextSubmit = async () => {
-    if (!inputText.trim()) {
-      Alert.alert('Error', 'Please enter some text to analyze.');
-      return;
-    }
     setTranscription(null);
     setResult(null);
     setError(null);
@@ -304,18 +316,8 @@ export default function Home() {
   };
 
   const handleConfessionSubmit = async () => {
-    if (!confessionText.trim()) {
-      Alert.alert('Error', 'Please enter a confession to submit.');
-      return;
-    }
-
-    if (confessionText.length > MAX_CONFESSION_LENGTH) {
-      Alert.alert('Error', `Confession must be ${MAX_CONFESSION_LENGTH} characters or less.`);
-      return;
-    }
-
     try {
-      setIsProcessing(true);
+      setIsSubmittingConfession(true);
       const response = await api.post<{ error?: string }>(
         '/confessions',
         { content: confessionText },
@@ -338,7 +340,7 @@ export default function Home() {
       console.error('Error submitting confession:', err);
       Alert.alert('Error', 'An unexpected error occurred. Please try again.');
     } finally {
-      setIsProcessing(false);
+      setIsSubmittingConfession(false);
     }
   };
 
@@ -369,212 +371,229 @@ export default function Home() {
   const colorKey: RiskLevel =
     result?.level === 'crisis' ? 'High' : result?.level === 'support' ? 'Medium' : 'Low';
   const currentColors = colorSets[colorKey];
-  const backgroundColor = Platform.OS === 'android' ? currentColors.solidColor : 'transparent';
+  const todayLabel = new Date().toLocaleDateString(undefined, {
+    weekday: 'long',
+    month: 'short',
+    day: 'numeric',
+  });
 
   return (
-    <SafeAreaView className="relative flex-1" style={{ backgroundColor }}>
-      {Platform.OS === 'ios' && (
-        <MeshGradientView
-          style={{ flex: 1, position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
-          columns={3}
-          ignoresSafeArea={false}
-          rows={3}
+    <SafeAreaView className="flex-1 bg-gray-900">
+      <ScreenHeader
+        title="All Is Well"
+        subtitle={todayLabel}
+        right={
+          <Tappable
+            onPress={openHelp}
+            className="min-h-11 flex-row items-center gap-1.5 rounded-full border border-red-500/30 bg-red-500/10 px-3.5">
+            <MaterialIcons name="support-agent" size={18} color="#FCA5A5" />
+            <Text className="text-sm font-semibold text-red-200">Get help</Text>
+          </Tappable>
+        }
+      />
+
+      <View className="flex-1">
+        <GradientBackground
           colors={currentColors.gradientColors}
-          points={points}
+          solid={currentColors.solidColor}
         />
-      )}
 
-      <KeyboardAvoidingView className="flex-1" behavior="padding">
-        <ScrollView
+        <KeyboardAvoidingView
           className="flex-1"
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="on-drag"
-          contentContainerStyle={{ flexGrow: 1, paddingBottom: 20 }}>
-          <View className="items-center border-b border-gray-700 bg-gray-900 p-5 shadow-md">
-            <Text className="text-3xl font-extrabold tracking-wide text-white">All Is Well</Text>
-            <Pressable
-              className="absolute right-4 top-5 rounded-full bg-red-700 px-3 py-1"
-              onPress={openHelp}>
-              <Text className="text-sm font-semibold text-white">Get help</Text>
-            </Pressable>
-          </View>
-
-          <View className="flex-1 p-4">
-            {isProcessing && <ActivityIndicator size="large" color="#A7F3D0" className="mb-4" />}
-
-            <View className="mb-6 items-center">
-              <Text className="mb-3 text-lg font-semibold text-white">Record Your Thoughts</Text>
-              {!recording ? (
-                <Pressable
-                  className="flex-row items-center rounded-full bg-green-600 px-6 py-3 shadow-lg"
-                  onPress={StartRecording}>
-                  <MaterialIcons name="mic" size={24} color="#ffffff" />
-                  <Text className="ml-2 text-lg font-semibold text-white">Start Recording</Text>
-                </Pressable>
-              ) : (
-                <Pressable
-                  className="flex-row items-center rounded-full bg-red-600 px-6 py-3 shadow-lg"
-                  onPress={StopRecording}>
-                  <MaterialIcons name="stop" size={24} color="#ffffff" />
-                  <Text className="ml-2 text-lg font-semibold text-white">Stop Recording</Text>
-                </Pressable>
-              )}
-              {recording && (
-                <Text className="mt-3 text-base text-gray-300">
-                  Recording {formatDuration(recordingSeconds)} of 2:00
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <ScrollView
+            className="flex-1"
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+            contentContainerStyle={{ padding: 16, paddingBottom: 24 }}>
+            <View className="w-full max-w-2xl gap-4 self-center">
+              <Card className="items-center">
+                <Text className="text-lg font-semibold text-white">How are you feeling?</Text>
+                <Text className="mt-1 text-center text-sm text-gray-400">
+                  Tap the mic and talk it out. Up to two minutes.
                 </Text>
-              )}
-            </View>
+                <Tappable
+                  onPress={recording ? StopRecording : StartRecording}
+                  disabled={isProcessing}
+                  accessibilityLabel={recording ? 'Stop recording' : 'Start recording'}
+                  className={`mt-4 h-20 w-20 items-center justify-center rounded-full ${
+                    recording ? 'bg-red-500' : 'bg-emerald-300'
+                  } ${isProcessing ? 'opacity-50' : ''}`}>
+                  <MaterialIcons
+                    name={recording ? 'stop' : 'mic'}
+                    size={34}
+                    color={recording ? '#FFFFFF' : '#022C22'}
+                  />
+                </Tappable>
+                {recording ? (
+                  <>
+                    <Text className="mt-3 text-2xl font-bold text-white" style={tabularNums}>
+                      {formatDuration(recordingSeconds)}
+                    </Text>
+                    <Text className="mt-1 text-sm text-gray-400">Tap stop when you are done.</Text>
+                  </>
+                ) : (
+                  <Text className="mt-3 text-sm font-semibold text-gray-300">Tap to record</Text>
+                )}
+              </Card>
 
-            <View className="mb-4 rounded-xl bg-gray-800 p-4 shadow-md">
-              <Pressable
-                onPress={toggleConfessionSection}
-                className="flex-row items-center justify-between">
-                <Text className="text-lg font-semibold text-white">Share a Confession</Text>
-                <MaterialIcons
-                  name={isConfessionSectionOpen ? 'keyboard-arrow-up' : 'keyboard-arrow-down'}
-                  size={24}
-                  color="#A7F3D0"
-                />
-              </Pressable>
-              <Animated.View style={confessionSectionStyle}>
-                <TextInput
-                  className="mt-3 h-32 rounded-lg bg-gray-700 p-3 text-base text-white"
+              {isProcessing && (
+                <View className="flex-row items-center gap-2 self-center rounded-full border border-white/10 bg-gray-900 px-4 py-2">
+                  <ActivityIndicator size="small" color="#6EE7B7" />
+                  <Text className="text-sm text-gray-300">Checking your entry...</Text>
+                </View>
+              )}
+
+              <CollapsibleCard
+                icon="edit"
+                title="Share a confession"
+                open={isConfessionSectionOpen}
+                onToggle={() => setIsConfessionSectionOpen((open) => !open)}>
+                <Field
+                  multiline
                   placeholder="Write your confession here..."
-                  placeholderTextColor="#A0A0A0"
                   value={confessionText}
                   onChangeText={setConfessionText}
-                  multiline
                   maxLength={MAX_CONFESSION_LENGTH}
                 />
-                <Text className="mt-2 self-end text-sm text-gray-400">
+                <Text className="mt-2 self-end text-xs text-gray-400" style={tabularNums}>
                   {confessionText.length}/{MAX_CONFESSION_LENGTH}
                 </Text>
-                <Pressable
-                  className="mt-3 self-center rounded-lg bg-purple-600 px-6 py-3 shadow-md"
-                  onPress={handleConfessionSubmit}>
-                  <Text className="text-base font-semibold text-white">Submit Confession</Text>
-                </Pressable>
-              </Animated.View>
-            </View>
-
-            <View className="mb-4 rounded-xl bg-gray-800 p-4 shadow-md ">
-              <Pressable
-                onPress={toggleThoughtsSection}
-                className="flex-row items-center justify-between">
-                <Text className="text-lg font-semibold text-white">Type Your Thoughts</Text>
-                <MaterialIcons
-                  name={isThoughtsSectionOpen ? 'keyboard-arrow-up' : 'keyboard-arrow-down'}
-                  size={24}
-                  color="#A7F3D0"
+                <Button
+                  label="Save to journal"
+                  variant="secondary"
+                  icon="lock"
+                  onPress={handleConfessionSubmit}
+                  loading={isSubmittingConfession}
+                  disabled={!confessionText.trim()}
+                  className="mt-3"
                 />
-              </Pressable>
-              <Animated.View style={thoughtsSectionStyle}>
-                <TextInput
-                  className="mt-3 rounded-lg bg-gray-700 p-3 text-base text-white "
+              </CollapsibleCard>
+
+              <CollapsibleCard
+                icon="notes"
+                title="Type your thoughts"
+                open={isThoughtsSectionOpen}
+                onToggle={() => setIsThoughtsSectionOpen((open) => !open)}>
+                <Field
+                  multiline
                   placeholder="Enter your thoughts here..."
-                  placeholderTextColor="#A0A0A0"
                   value={inputText}
                   onChangeText={setInputText}
-                  multiline
                   maxLength={5000}
                 />
-                <Pressable
-                  className="mt-3 self-center rounded-lg bg-blue-600 px-6 py-3 shadow-md"
-                  onPress={handleTextSubmit}>
-                  <Text className="text-base font-semibold text-white">Submit</Text>
-                </Pressable>
-              </Animated.View>
-            </View>
+                <Button
+                  label="Check my thoughts"
+                  variant="secondary"
+                  icon="search"
+                  onPress={handleTextSubmit}
+                  loading={isProcessing}
+                  disabled={!inputText.trim()}
+                  className="mt-3"
+                />
+              </CollapsibleCard>
 
-            {(transcription || result) && (
-              <View className="mb-4 rounded-xl bg-gray-800 p-4 shadow-md">
-                <Text className="mb-3 text-lg font-semibold text-white">Results</Text>
-                {transcription && (
-                  <View className="mb-3">
-                    <Text className="text-base font-medium text-white">Transcription:</Text>
-                    <Text className="mt-1 text-base text-gray-300">{transcription}</Text>
-                  </View>
-                )}
-                {result && (
-                  <View
-                    className={
-                      result.crisis ? 'rounded-lg border border-red-400 bg-red-950 p-3' : ''
-                    }>
-                    {result.crisis && (
-                      <Text className="mb-1 text-base font-semibold text-white">
-                        Support right now
+              {(transcription || result) && (
+                <Card>
+                  <Text className="text-xs font-semibold uppercase tracking-widest text-gray-400">
+                    Your check-in
+                  </Text>
+
+                  {transcription && (
+                    <View className="mt-3 rounded-lg border border-white/5 bg-gray-900/60 p-3">
+                      <Text className="text-sm font-medium text-gray-400">What you said</Text>
+                      <Text className="mt-1 text-base leading-6 text-gray-200">
+                        {transcription}
                       </Text>
-                    )}
-                    <Text className="text-base text-gray-200">{result.message}</Text>
-                    {result.resources.length > 0 && (
-                      <View className="mt-3">
-                        <Text className="text-base font-semibold text-white">
-                          Where to get help
-                        </Text>
-                        <Text className="mt-1 text-sm text-gray-300">
-                          These helplines are for India.
-                        </Text>
-                        {result.resources.map((resource) => (
-                          <Text key={resource.name} className="mt-1 text-base text-gray-200">
-                            <Text className="font-semibold">{resource.name}:</Text>{' '}
-                            {resource.contact}
+                    </View>
+                  )}
+
+                  {result && (
+                    <View
+                      className={
+                        result.crisis
+                          ? 'mt-3 rounded-lg border border-red-500/30 bg-red-950/60 p-4'
+                          : 'mt-3'
+                      }>
+                      {result.crisis && (
+                        <View className="mb-2 flex-row items-center gap-2">
+                          <MaterialIcons name="support-agent" size={20} color="#FCA5A5" />
+                          <Text className="text-base font-semibold text-white">
+                            Support right now
                           </Text>
-                        ))}
-                        <Text className="mt-2 text-sm text-gray-300">
-                          If you or someone else is in immediate danger, call{' '}
-                          {result.emergency ?? 'your local emergency number'}.
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                )}
-              </View>
-            )}
+                        </View>
+                      )}
+                      <Text className="text-base leading-6 text-gray-200">{result.message}</Text>
+                      {result.resources.length > 0 && (
+                        <View className="mt-4">
+                          <Text className="text-base font-semibold text-white">
+                            Where to get help
+                          </Text>
+                          <Text className="mt-1 text-sm text-gray-400">
+                            These helplines are for India.
+                          </Text>
+                          {result.resources.map((resource) => (
+                            <View
+                              key={resource.name}
+                              className="mt-2 flex-row items-start gap-3 rounded-lg bg-white/5 px-3 py-2.5">
+                              <MaterialIcons name="phone" size={18} color="#6EE7B7" />
+                              <View className="flex-1">
+                                <Text className="text-sm font-semibold text-white">
+                                  {resource.name}
+                                </Text>
+                                <Text className="mt-0.5 text-sm text-gray-300">
+                                  {resource.contact}
+                                </Text>
+                              </View>
+                            </View>
+                          ))}
+                          <Text className="mt-3 text-sm text-gray-400">
+                            If you or someone else is in immediate danger, call{' '}
+                            {result.emergency ?? 'your local emergency number'}.
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  )}
+                </Card>
+              )}
 
-            {error && <Text className="mt-4 text-center text-base text-red-400">{error}</Text>}
+              {error && <ErrorBanner>{error}</ErrorBanner>}
 
-            <Text className="mt-4 text-center text-sm text-gray-500">
-              This is a check-in tool, not a diagnosis or a crisis service.
-            </Text>
+              <Text className="px-2 text-center text-xs leading-5 text-gray-700">
+                This is a check-in tool, not a diagnosis or a crisis service.
+              </Text>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </View>
+
+      <Sheet visible={helpVisible} onClose={() => setHelpVisible(false)} title="Get help now">
+        <Text className="text-sm text-gray-400">These helplines are for India.</Text>
+
+        {helpLoading && <ActivityIndicator className="mt-4" color="#6EE7B7" />}
+        {helpError && (
+          <View className="mt-4">
+            <ErrorBanner>{helpError}</ErrorBanner>
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+        )}
 
-      <Modal
-        visible={helpVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setHelpVisible(false)}>
-        <View
-          className="flex-1 items-center justify-center p-6"
-          style={{ backgroundColor: 'rgba(0, 0, 0, 0.7)' }}>
-          <View className="w-full rounded-xl bg-gray-800 p-5">
-            <Text className="text-xl font-bold text-white">Get help now</Text>
-            <Text className="mt-1 text-sm text-gray-300">These helplines are for India.</Text>
-
-            {helpLoading && <ActivityIndicator className="mt-4" color="#ffffff" />}
-            {helpError && <Text className="mt-4 text-sm text-red-300">{helpError}</Text>}
-
-            {helpResources.map((resource) => (
-              <View key={resource.name} className="mt-3">
-                <Text className="text-base font-semibold text-white">{resource.name}</Text>
-                <Text className="mt-1 text-sm text-gray-300">{resource.contact}</Text>
-              </View>
-            ))}
-
-            <Text className="mt-4 text-sm text-white">
-              If you are in immediate danger, call {helpEmergency ?? '112'}.
-            </Text>
-
-            <Pressable
-              className="mt-5 self-center rounded-lg bg-gray-600 px-5 py-2"
-              onPress={() => setHelpVisible(false)}>
-              <Text className="text-base font-semibold text-white">Close</Text>
-            </Pressable>
+        {helpResources.map((resource) => (
+          <View
+            key={resource.name}
+            className="mt-3 flex-row items-start gap-3 rounded-lg bg-white/5 px-3 py-3">
+            <MaterialIcons name="phone" size={18} color="#6EE7B7" />
+            <View className="flex-1">
+              <Text className="text-base font-semibold text-white">{resource.name}</Text>
+              <Text className="mt-0.5 text-sm text-gray-300">{resource.contact}</Text>
+            </View>
           </View>
-        </View>
-      </Modal>
+        ))}
+
+        <Text className="mt-4 text-sm text-gray-300">
+          If you are in immediate danger, call {helpEmergency ?? '112'}.
+        </Text>
+      </Sheet>
     </SafeAreaView>
   );
 }

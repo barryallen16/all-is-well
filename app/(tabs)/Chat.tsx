@@ -1,15 +1,16 @@
+import { MaterialIcons } from '@expo/vector-icons';
+import { useEffect, useState } from 'react';
 import {
   View,
   Text,
-  Pressable,
   ActivityIndicator,
   ScrollView,
-  TextInput,
-  Alert,
-  Modal,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useEffect, useState } from 'react';
+
+import { Card, ErrorBanner, Field, ScreenHeader, Sheet, Tappable } from '~/components/ui';
 import { api, authHeaders } from '~/utils/api';
 
 interface Message {
@@ -48,56 +49,77 @@ interface AnalysisResult {
   evidence: Evidence[];
 }
 
+function formatTimestamp(value: string) {
+  return new Date(value).toLocaleString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
 export default function Chat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState<string>('');
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSending, setIsSending] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
 
   useEffect(() => {
     (async () => {
-      setIsProcessing(true);
-      const response = await api.get<Message[]>('/messages', undefined, {
-        headers: await authHeaders(),
-      });
+      try {
+        const response = await api.get<Message[]>('/messages', undefined, {
+          headers: await authHeaders(),
+        });
 
-      if (response.ok && response.data) {
-        setMessages(response.data);
-        setError(null);
-      } else {
+        if (response.ok && response.data) {
+          setMessages(response.data);
+          setError(null);
+        } else {
+          setError('Failed to load messages. Please try again.');
+        }
+      } catch (err) {
+        console.error('Failed to load messages', err);
         setError('Failed to load messages. Please try again.');
+      } finally {
+        setIsLoading(false);
       }
-      setIsProcessing(false);
     })();
   }, []);
 
   const sendMessage = async () => {
-    if (!newMessage.trim()) {
-      Alert.alert('Error', 'Please enter a message.');
-      return;
-    }
+    if (!newMessage.trim() || isSending) return;
 
-    setIsProcessing(true);
-    const response = await api.post<Message>(
-      '/messages',
-      { content: newMessage },
-      { headers: await authHeaders() }
-    );
+    setIsSending(true);
+    try {
+      const response = await api.post<Message>(
+        '/messages',
+        { content: newMessage },
+        { headers: await authHeaders() }
+      );
 
-    if (response.ok && response.data) {
-      const created = response.data;
-      setMessages((current) => [created, ...current]);
-      setNewMessage('');
-      setError(null);
-    } else {
+      if (response.ok && response.data) {
+        const created = response.data;
+        setMessages((current) => [created, ...current]);
+        setNewMessage('');
+        setError(null);
+      } else {
+        setError('Failed to send message. Please try again.');
+      }
+    } catch (err) {
+      console.error('Failed to send message', err);
       setError('Failed to send message. Please try again.');
+    } finally {
+      setIsSending(false);
     }
-    setIsProcessing(false);
   };
 
   const analyzeMentalHealth = async () => {
-    setIsProcessing(true);
+    if (messages.length === 0 || isAnalyzing) return;
+
+    setIsAnalyzing(true);
     try {
       const response = await api.post<AnalysisResult>(
         '/analyze_chat',
@@ -115,134 +137,174 @@ export default function Chat() {
       console.error('Failed to analyze chat', err);
       setError('Failed to analyze chat.');
     } finally {
-      setIsProcessing(false);
+      setIsAnalyzing(false);
     }
   };
 
   return (
     <SafeAreaView className="flex-1 bg-gray-900">
-      <ScrollView
-        className="flex-1"
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
-        contentContainerStyle={{ flexGrow: 1, paddingBottom: 20 }}>
-        <View className="items-center border-b border-gray-700 bg-gray-900 p-5 shadow-md">
-          <Text className="text-3xl font-extrabold tracking-wide text-white">Check in</Text>
-        </View>
-
-        <View className="flex-1 p-4">
-          {isProcessing && <ActivityIndicator size="large" color="#A7F3D0" className="mb-4" />}
-
-          <View className="flex-1 rounded-xl bg-gray-800 p-4 shadow-md">
-            <View className="mb-3 flex-row items-center justify-between">
-              <Text className="text-lg font-semibold text-white">Messages</Text>
-              <Pressable onPress={analyzeMentalHealth}>
-                <Text className="text-sm font-medium text-blue-400">Check in</Text>
-              </Pressable>
-            </View>
-            {messages.length === 0 ? (
-              <Text className="mt-2 text-center text-base text-gray-400">No messages yet.</Text>
+      <ScreenHeader
+        title="Your messages"
+        subtitle="Private to your account."
+        right={
+          <Tappable
+            onPress={analyzeMentalHealth}
+            disabled={messages.length === 0 || isAnalyzing}
+            className={`min-h-11 flex-row items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3.5 ${
+              messages.length === 0 ? 'opacity-50' : ''
+            }`}>
+            {isAnalyzing ? (
+              <ActivityIndicator size="small" color="#E5E7EB" />
             ) : (
-              messages.map((message) => (
-                <View key={message.id} className="mb-2 rounded-lg bg-gray-700 p-3 shadow-sm">
-                  <Text className="text-base text-white">{message.content}</Text>
-                  <Text className="mt-1 text-xs text-gray-400">
-                    {new Date(message.created_at).toLocaleString()}
-                  </Text>
+              <MaterialIcons name="health-and-safety" size={18} color="#E5E7EB" />
+            )}
+            <Text className="text-sm font-semibold text-white">Check in</Text>
+          </Tappable>
+        }
+      />
+
+      <KeyboardAvoidingView
+        className="flex-1"
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView
+          className="flex-1"
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          contentContainerStyle={{ padding: 16, flexGrow: 1 }}>
+          <View className="w-full max-w-2xl flex-1 self-center">
+            {isLoading ? (
+              <View className="flex-1 items-center justify-center py-10">
+                <ActivityIndicator color="#6EE7B7" />
+              </View>
+            ) : messages.length === 0 ? (
+              <Card className="items-center py-8">
+                <View className="h-12 w-12 items-center justify-center rounded-full bg-white/5">
+                  <MaterialIcons name="chat" size={24} color="#6EE7B7" />
                 </View>
-              ))
+                <Text className="mt-3 text-base font-semibold text-white">No messages yet</Text>
+                <Text className="mt-1 text-center text-sm text-gray-400">
+                  Write something below. It stays private to your account.
+                </Text>
+              </Card>
+            ) : (
+              <View className="gap-3">
+                {messages.map((message) => (
+                  <View
+                    key={message.id}
+                    className="max-w-[85%] self-end rounded-2xl rounded-br-md bg-emerald-300 px-3.5 py-2.5">
+                    <Text className="text-base leading-6 text-emerald-950">{message.content}</Text>
+                    <Text className="mt-1 text-[11px] text-emerald-900/70">
+                      {formatTimestamp(message.created_at)}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {error && (
+              <View className="mt-4">
+                <ErrorBanner>{error}</ErrorBanner>
+              </View>
             )}
           </View>
+        </ScrollView>
 
-          <View className="mt-4 flex-row items-center">
-            <TextInput
-              className="mr-2 flex-1 rounded-lg bg-gray-700 p-3 text-base text-white"
-              placeholder="Type a message..."
-              placeholderTextColor="#A0A0A0"
+        <View className="border-t border-white/10 bg-gray-900 px-4 py-3">
+          <View className="w-full max-w-2xl flex-row items-center gap-2 self-center">
+            <Field
+              className="flex-1"
+              placeholder="Write a message..."
               value={newMessage}
               onChangeText={setNewMessage}
               maxLength={2000}
+              returnKeyType="send"
+              onSubmitEditing={sendMessage}
+              blurOnSubmit={false}
             />
-            <Pressable
-              className="rounded-lg bg-blue-600 px-4 py-3"
+            <Tappable
               onPress={sendMessage}
-              disabled={isProcessing}>
-              <Text className="text-base font-semibold text-white">Send</Text>
-            </Pressable>
+              disabled={!newMessage.trim() || isSending}
+              accessibilityLabel="Send message"
+              className={`h-12 w-12 items-center justify-center rounded-full bg-emerald-300 ${
+                !newMessage.trim() || isSending ? 'opacity-50' : ''
+              }`}>
+              {isSending ? (
+                <ActivityIndicator size="small" color="#022C22" />
+              ) : (
+                <MaterialIcons name="send" size={20} color="#022C22" />
+              )}
+            </Tappable>
           </View>
-
-          {error && <Text className="mt-4 text-center text-base text-red-400">{error}</Text>}
         </View>
-      </ScrollView>
+      </KeyboardAvoidingView>
 
-      <Modal
+      <Sheet
         visible={analysis !== null}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setAnalysis(null)}>
-        <View
-          className="flex-1 items-center justify-center p-6"
-          style={{ backgroundColor: 'rgba(0, 0, 0, 0.7)' }}>
-          {analysis && (
-            <View className="w-full rounded-xl bg-gray-800 p-5" style={{ maxHeight: '85%' }}>
-              <ScrollView style={{ flexShrink: 1 }} showsVerticalScrollIndicator={false}>
-                <Text className="text-xl font-bold text-white">
-                  {analysis.crisis ? 'Support now' : 'Check-in'}
+        onClose={() => setAnalysis(null)}
+        title={analysis?.crisis ? 'Support now' : 'Your check-in'}>
+        {analysis && (
+          <>
+            <Text className="text-base leading-6 text-gray-200">{analysis.message}</Text>
+
+            {analysis.evidence.length > 0 && (
+              <View className="mt-4">
+                <Text className="text-xs font-semibold uppercase tracking-widest text-gray-400">
+                  From your message
                 </Text>
-                <Text className="mt-2 text-base text-gray-200">{analysis.message}</Text>
-
-                {analysis.evidence.length > 0 && (
-                  <View className="mt-4">
-                    <Text className="text-base font-semibold text-white">From your message</Text>
-                    {analysis.evidence.map((item) => (
-                      <Text key={item.id} className="mt-1 text-sm text-gray-300">
-                        "{item.content}"
-                      </Text>
-                    ))}
-                  </View>
-                )}
-
-                {analysis.matched.length > 0 && (
-                  <View className="mt-4">
-                    <Text className="text-base font-semibold text-white">What we noticed</Text>
-                    {analysis.matched.map((match) => (
-                      <Text
-                        key={`${match.phrase}-${match.kind}`}
-                        className="mt-1 text-sm text-gray-300">
-                        - "{match.phrase}"
-                      </Text>
-                    ))}
-                  </View>
-                )}
-
-                {analysis.resources.length > 0 && (
-                  <View className="mt-4">
-                    <Text className="text-base font-semibold text-white">Where to get help</Text>
-                    <Text className="mt-1 text-sm text-gray-300">
-                      These helplines are for India.
+                {analysis.evidence.map((item) => (
+                  <View key={item.id} className="mt-2 rounded-lg bg-white/5 px-3 py-2.5">
+                    <Text className="text-sm leading-5 text-gray-200">
+                      &quot;{item.content}&quot;
                     </Text>
-                    {analysis.resources.map((resource) => (
-                      <Text key={resource.name} className="mt-1 text-sm text-gray-200">
-                        <Text className="font-semibold">{resource.name}:</Text> {resource.contact}
-                      </Text>
-                    ))}
-                    <Text className="mt-2 text-sm text-gray-300">
-                      If you or someone else is in immediate danger, call{' '}
-                      {analysis.emergency ?? '112'}.
+                    <Text className="mt-1 text-xs text-gray-400">
+                      {formatTimestamp(item.created_at)}
                     </Text>
                   </View>
-                )}
-              </ScrollView>
+                ))}
+              </View>
+            )}
 
-              <Pressable
-                className="mt-4 self-center rounded-lg bg-gray-600 px-5 py-2"
-                onPress={() => setAnalysis(null)}>
-                <Text className="text-base font-semibold text-white">Close</Text>
-              </Pressable>
-            </View>
-          )}
-        </View>
-      </Modal>
+            {analysis.matched.length > 0 && (
+              <View className="mt-4">
+                <Text className="text-xs font-semibold uppercase tracking-widest text-gray-400">
+                  What we noticed
+                </Text>
+                {analysis.matched.map((match) => (
+                  <View
+                    key={`${match.phrase}-${match.kind}`}
+                    className="mt-2 flex-row items-start gap-2">
+                    <View className="mt-2 h-1.5 w-1.5 rounded-full bg-gray-500" />
+                    <Text className="flex-1 text-sm text-gray-300">&quot;{match.phrase}&quot;</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {analysis.resources.length > 0 && (
+              <View className="mt-4">
+                <Text className="text-xs font-semibold uppercase tracking-widest text-gray-400">
+                  Where to get help
+                </Text>
+                <Text className="mt-1 text-sm text-gray-400">These helplines are for India.</Text>
+                {analysis.resources.map((resource) => (
+                  <View
+                    key={resource.name}
+                    className="mt-2 flex-row items-start gap-3 rounded-lg bg-white/5 px-3 py-2.5">
+                    <MaterialIcons name="phone" size={18} color="#6EE7B7" />
+                    <View className="flex-1">
+                      <Text className="text-sm font-semibold text-white">{resource.name}</Text>
+                      <Text className="mt-0.5 text-sm text-gray-300">{resource.contact}</Text>
+                    </View>
+                  </View>
+                ))}
+                <Text className="mt-3 text-sm text-gray-400">
+                  If you or someone else is in immediate danger, call {analysis.emergency ?? '112'}.
+                </Text>
+              </View>
+            )}
+          </>
+        )}
+      </Sheet>
     </SafeAreaView>
   );
 }

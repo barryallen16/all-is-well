@@ -1,49 +1,68 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
-import { MaterialIcons } from '@expo/vector-icons';
+import { StyleSheet } from 'react-native';
 
 export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#A7F3D0',
-        tabBarInactiveTintColor: '#A0A0A0',
+        headerShown: false,
+        tabBarActiveTintColor: '#6EE7B7',
+        tabBarInactiveTintColor: '#9CA3AF',
         tabBarStyle: {
-          backgroundColor: '#1F2937',
+          backgroundColor: '#111827',
+          borderTopColor: 'rgba(255,255,255,0.08)',
+          borderTopWidth: StyleSheet.hairlineWidth,
         },
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: '600',
+        },
+        tabBarHideOnKeyboard: true,
       }}>
       <Tabs.Screen
         name="index"
         options={{
           title: 'Home',
-          headerShown: false,
-          tabBarIcon: ({ color, size }) => <MaterialIcons name="home" size={size} color={color} />,
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons name={focused ? 'home' : 'home-outline'} size={size} color={color} />
+          ),
         }}
       />
 
       <Tabs.Screen
         name="Activity"
         options={{
-          headerShown: false,
           title: 'Activity',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="check-circle" size={size} color={color} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons
+              name={focused ? 'checkmark-circle' : 'checkmark-circle-outline'}
+              size={size}
+              color={color}
+            />
           ),
         }}
       />
       <Tabs.Screen
         name="Chat"
         options={{
-          headerShown: false,
           title: 'Check in',
-          tabBarIcon: ({ color, size }) => <MaterialIcons name="chat" size={size} color={color} />,
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons
+              name={focused ? 'chatbubble-ellipses' : 'chatbubble-ellipses-outline'}
+              size={size}
+              color={color}
+            />
+          ),
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
-          headerShown: false,
-          tabBarIcon: ({ color, size }) => <MaterialIcons name="face" size={size} color={color} />,
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons name={focused ? 'person' : 'person-outline'} size={size} color={color} />
+          ),
         }}
       />
     </Tabs>

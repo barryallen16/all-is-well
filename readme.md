@@ -42,6 +42,12 @@ bunx expo start --go
 scan the QR code with Expo Go.
 accounts are username and password only, with no password recovery.
 
+## interface
+
+every screen uses the shared pieces in `components/ui.tsx`: buttons, cards, text fields, the screen header, the error banner, and the modal sheet.
+use those instead of restyling a single screen, so the app keeps one look.
+`components/gradient-background.ios.tsx` draws the pastel canvas on iOS, and `components/gradient-background.tsx` is the flat fallback for the other platforms.
+
 ## run the backend tests
 
 ```bash

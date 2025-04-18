@@ -1,8 +1,10 @@
-import { View, Text, TextInput, Pressable, Alert, ActivityIndicator } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useState } from 'react';
-import { api, setToken } from '~/utils/api';
 import { useRouter } from 'expo-router';
+import { useState } from 'react';
+import { View, Text, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { Brand, Button, Card, Field, Tappable } from '~/components/ui';
+import { api, setToken } from '~/utils/api';
 
 interface AuthResponse {
   token: string;
@@ -54,48 +56,68 @@ export default function Auth() {
 
   return (
     <SafeAreaView className="flex-1 bg-gray-900">
-      <View className="flex-1 justify-center p-4">
-        <Text className="mb-6 text-center text-3xl font-extrabold text-white">All Is Well</Text>
+      <KeyboardAvoidingView
+        className="flex-1"
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: 20 }}
+          keyboardShouldPersistTaps="handled">
+          <View className="w-full max-w-md gap-6 self-center">
+            <Brand />
 
-        <TextInput
-          className="mb-4 rounded-lg bg-gray-800 p-3 text-lg text-white"
-          placeholder="Username"
-          placeholderTextColor="#A0A0A0"
-          value={username}
-          onChangeText={setUsername}
-          autoCapitalize="none"
-          maxLength={50}
-        />
-        <TextInput
-          className="mb-6 rounded-lg bg-gray-800 p-3 text-lg text-white"
-          placeholder="Password (8+ characters)"
-          placeholderTextColor="#A0A0A0"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          autoCapitalize="none"
-          maxLength={128}
-        />
+            <Card className="gap-3">
+              <Text className="text-lg font-semibold text-white">
+                {isSignUp ? 'Create an account' : 'Sign in'}
+              </Text>
 
-        {isLoading ? (
-          <ActivityIndicator size="large" color="#A7F3D0" />
-        ) : (
-          <>
-            <Pressable
-              className="mb-4 rounded-lg bg-blue-600 px-6 py-3 shadow-md"
-              onPress={handleAuth}>
-              <Text className="text-center text-lg font-semibold text-white">
-                {isSignUp ? 'Sign Up' : 'Sign In'}
+              <Field
+                placeholder="Username"
+                value={username}
+                onChangeText={setUsername}
+                autoCapitalize="none"
+                autoCorrect={false}
+                maxLength={50}
+                textContentType="username"
+                autoComplete="username"
+                returnKeyType="next"
+              />
+              <Field
+                placeholder="Password (8+ characters)"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+                autoCapitalize="none"
+                maxLength={128}
+                textContentType="password"
+                autoComplete={isSignUp ? 'new-password' : 'current-password'}
+                returnKeyType="go"
+                onSubmitEditing={handleAuth}
+              />
+
+              {isSignUp && (
+                <Text className="text-sm leading-5 text-gray-400">
+                  There is no password recovery. Keep your password safe.
+                </Text>
+              )}
+
+              <Button
+                label={isSignUp ? 'Sign up' : 'Sign in'}
+                onPress={handleAuth}
+                loading={isLoading}
+                disabled={!username.trim() || !password}
+              />
+            </Card>
+
+            <Tappable
+              onPress={() => setIsSignUp((value) => !value)}
+              className="min-h-11 items-center justify-center">
+              <Text className="text-sm font-semibold text-emerald-300">
+                {isSignUp ? 'Already have an account? Sign in' : 'Need an account? Sign up'}
               </Text>
-            </Pressable>
-            <Pressable onPress={() => setIsSignUp(!isSignUp)}>
-              <Text className="text-center text-base text-blue-400">
-                {isSignUp ? 'Already have an account? Sign In' : 'Need an account? Sign Up'}
-              </Text>
-            </Pressable>
-          </>
-        )}
-      </View>
+            </Tappable>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

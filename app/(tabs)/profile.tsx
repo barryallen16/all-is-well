@@ -1,6 +1,10 @@
-import { View, Text, Pressable, Alert, ScrollView, Share } from 'react-native';
-import React, { useCallback, useState } from 'react';
+import { MaterialIcons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useState } from 'react';
+import { View, Text, Alert, ScrollView, Share, ActivityIndicator } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { Button, Card, ErrorBanner, ScreenHeader, Tappable, tabularNums } from '~/components/ui';
 import { api, authHeaders, clearToken } from '~/utils/api';
 
 interface Confession {
@@ -36,7 +40,7 @@ const Profile = () => {
 
   useFocusEffect(
     useCallback(() => {
-      void loadConfessions();
+      loadConfessions();
     }, [])
   );
 
@@ -126,55 +130,86 @@ const Profile = () => {
     });
 
   return (
-    <View className="flex-1 bg-gray-900">
-      <ScrollView contentContainerStyle={{ padding: 16, flexGrow: 1 }}>
-        <Text className="mb-6 text-3xl font-extrabold text-white">Profile</Text>
+    <SafeAreaView className="flex-1 bg-gray-900">
+      <ScreenHeader title="Profile" subtitle="Your journal and data." />
 
-        <Text className="mb-2 text-lg font-semibold text-white">Your journal</Text>
-        <Text className="mb-4 text-sm text-gray-400">
-          These entries are private to your account.
-        </Text>
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
+        <View className="w-full max-w-2xl gap-4 self-center">
+          {error && <ErrorBanner>{error}</ErrorBanner>}
 
-        {isLoading && <Text className="text-gray-400">Loading...</Text>}
-        {error && <Text className="mb-3 text-red-400">{error}</Text>}
-        {!isLoading && confessions.length === 0 && (
-          <Text className="text-gray-400">Nothing saved yet.</Text>
-        )}
+          <Card>
+            <View className="flex-row items-center justify-between gap-3">
+              <Text className="text-xs font-semibold uppercase tracking-widest text-gray-400">
+                Your journal
+              </Text>
+              {!isLoading && (
+                <Text className="text-xs text-gray-400" style={tabularNums}>
+                  {confessions.length} {confessions.length === 1 ? 'entry' : 'entries'}
+                </Text>
+              )}
+            </View>
+            <Text className="mt-1 text-sm text-gray-400">
+              These entries are private to your account.
+            </Text>
 
-        {confessions.map((confession) => (
-          <View key={confession.id} className="mb-3 rounded-lg bg-gray-800 p-3">
-            <Text className="text-sm text-gray-400">{formatDate(confession.created_at)}</Text>
-            <Text className="mt-1 text-base text-white">{confession.content}</Text>
-            <Pressable className="mt-2 self-end" onPress={() => handleDelete(confession.id)}>
-              <Text className="text-sm font-semibold text-red-400">Delete</Text>
-            </Pressable>
-          </View>
-        ))}
+            {isLoading && <ActivityIndicator className="mt-4" color="#6EE7B7" />}
 
-        <View className="mb-4 mt-6 rounded-lg bg-gray-800 p-4">
-          <Text className="mb-2 text-lg font-semibold text-white">Your data</Text>
-          <Text className="mb-3 text-sm text-gray-400">
-            Export a copy or delete everything stored for your account.
-          </Text>
-          <Pressable
-            className="mb-2 self-start rounded-lg bg-blue-600 px-4 py-2"
-            onPress={handleExport}>
-            <Text className="text-base font-semibold text-white">Export my data</Text>
-          </Pressable>
-          <Pressable
-            className="self-start rounded-lg border border-red-500 px-4 py-2"
-            onPress={handleDeleteAccount}>
-            <Text className="text-base font-semibold text-red-400">Delete my account</Text>
-          </Pressable>
+            {!isLoading && confessions.length === 0 && (
+              <View className="items-center py-6">
+                <View className="h-12 w-12 items-center justify-center rounded-full bg-white/5">
+                  <MaterialIcons name="menu-book" size={24} color="#6EE7B7" />
+                </View>
+                <Text className="mt-3 text-base font-semibold text-white">Nothing saved yet</Text>
+                <Text className="mt-1 text-center text-sm text-gray-400">
+                  Share a confession from Home to start your journal.
+                </Text>
+              </View>
+            )}
+
+            {confessions.map((confession) => (
+              <View key={confession.id} className="mt-3 rounded-lg bg-white/5 p-3">
+                <View className="flex-row items-center justify-between gap-3">
+                  <Text className="text-xs text-gray-400">{formatDate(confession.created_at)}</Text>
+                  <Tappable
+                    onPress={() => handleDelete(confession.id)}
+                    accessibilityLabel={`Delete entry from ${formatDate(confession.created_at)}`}
+                    hitSlop={8}
+                    className="rounded-full bg-white/10 p-2">
+                    <MaterialIcons name="delete-outline" size={18} color="#FCA5A5" />
+                  </Tappable>
+                </View>
+                <Text className="mt-2 text-base leading-6 text-white">{confession.content}</Text>
+              </View>
+            ))}
+          </Card>
+
+          <Card>
+            <Text className="text-xs font-semibold uppercase tracking-widest text-gray-400">
+              Your data
+            </Text>
+            <Text className="mt-1 text-sm text-gray-400">
+              Export a copy or delete everything stored for your account.
+            </Text>
+            <Button
+              label="Export my data"
+              variant="secondary"
+              icon="download"
+              onPress={handleExport}
+              className="mt-4"
+            />
+            <Button
+              label="Delete my account"
+              variant="danger"
+              icon="delete-outline"
+              onPress={handleDeleteAccount}
+              className="mt-2"
+            />
+          </Card>
+
+          <Button label="Sign out" variant="secondary" icon="logout" onPress={handleSignOut} />
         </View>
-
-        <Pressable
-          className="mb-4 mt-6 self-center rounded-lg bg-red-600 px-6 py-3 shadow-md"
-          onPress={handleSignOut}>
-          <Text className="text-base font-semibold text-white">Sign Out</Text>
-        </Pressable>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 
